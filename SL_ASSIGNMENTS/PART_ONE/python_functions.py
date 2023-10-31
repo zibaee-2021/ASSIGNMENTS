@@ -11,7 +11,7 @@ def transform_dataset_by_polynom_basis_k1_to_k4(x: list) -> list:
     :return: Four polynomial input values for k=1, k=2, k=3, k=4.
     """
     X_1 = np.ones((len(x), 1))  # k=1 gives x^0, so filled with 1s. This is the bias term (i.e. y-intercept).
-    X_2 = np.array(x).reshape(-1, 1) # k=2
+    X_2 = np.array(x).reshape(-1, 1)  # k=2
     X_2 = np.column_stack((X_1, X_2))
     X_3 = np.array([x_**2 for x_ in x]).reshape(-1, 1) # k=3
     X_3 = np.column_stack((X_2, X_3))
@@ -181,7 +181,7 @@ def plot_polynom_k2_k5_k10_k14_k18(x, y, y_preds, x_for_plot):
 def compute_training_errors_polynom() -> tuple:
     g_dataset_30x, g_dataset_30y = generate_dataset_about_g(num_of_data_pairs=30)
     X_k18_30 = transform_dataset_by_polynom_basis_k18(x=g_dataset_30x)
-    X_k1_to_k18_30 = [X_k18_30[:,:i] for i in range(1, 19)]
+    X_k1_to_k18_30 = [X_k18_30[:, :i] for i in range(1, 19)]
     weights_k1_to_k18 = compute_weights_of_lr_by_least_sqrs(X=X_k1_to_k18_30, y=g_dataset_30y)
     training_errors_k1_to_k18 = calculate_MSEs(m=len(g_dataset_30x), X=X_k1_to_k18_30,
                                                w=weights_k1_to_k18, y=g_dataset_30y)
@@ -342,11 +342,43 @@ def split_dataset_and_compute_20_MSEs_with_single_attr(ds) -> tuple:
     return each_of_12_attr_mse_train, each_of_12_attr_mse_test
 
 
+def split_dataset_and_compute_20_MSEs_with_all_12_attr(ds) -> tuple:
+
+    _20_mse_train = []
+    _20_mse_test = []
+    for i in range(20):  # serves dual purpose: loop 20 times and provide seed for unique splits.
+
+        train_dataset, test_dataset = train_test_split(ds, test_size=1 / 3, random_state=i)
+
+        m_train = train_dataset.shape[0]
+        X_train_all_attr = train_dataset[:, 0: 12]
+        ones_train = np.ones((m_train, 1))
+        X_train = np.column_stack((ones_train, X_train_all_attr))
+        y_train = train_dataset[:, -1]
+
+        m_test = test_dataset.shape[0]
+        X_test_all_attr = test_dataset[:, 0: 12]
+        ones_test = np.ones((m_test, 1))
+        X_test = np.column_stack((ones_test, X_test_all_attr))
+        y_test = test_dataset[:, -1]
+
+        mse_train, mse_test = fit_lr_and_calculate_mse(m_train=m_train, x_train=X_train, y_train=y_train,
+                                                       m_test=m_test, x_test=X_test, y_test=y_test)
+        _20_mse_train.append(mse_train)
+        _20_mse_test.append(mse_test)
+
+    return _20_mse_train, _20_mse_test
+
+
 if __name__ == '__main__':
-    # dataset = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
+    dataset = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
     #
-    a, b = split_dataset_and_compute_20_MSEs_with_ones()
-    # a, b = split_dataset_and_compute_20_MSEs_with_single_attr(np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1))
+    # a, b = split_dataset_and_compute_20_MSEs_with_ones(dataset)
+    a, b = split_dataset_and_compute_20_MSEs_with_single_attr(dataset)
+
+    print(f'mean MSE for train dataset, using only 1 attributes={np.mean(a)}')  # gives 65.39992873551633
+    print(f'mean MSE for test dataset, using only 1 attributes={np.mean(b)}')  # gives 68.3736527258721
+    a, b = split_dataset_and_compute_20_MSEs_with_all_12_attr(dataset)
 
     # dataset_x, dataset_y = [1, 2, 3, 4], [3, 2, 0, 5]
     # X_k1_k2_k3_k4 = transform_dataset_by_polynom_basis_k1_to_k4(dataset_x)
@@ -354,4 +386,5 @@ if __name__ == '__main__':
     # calculate_MSEs(m=len(dataset_x), X=X_k1_k2_k3_k4, w=weights_k1_k2_k3_k4, y=dataset_y)
 
     # compute_training_errors_polynom()
-    print(b)
+    print(f'mean MSE for train dataset, using all 12 attributes={np.mean(a)}')  # gives 21.70373755394515
+    print(f'mean MSE for test dataset, using all 12 attributes={np.mean(b)}')  # gives 25.273765249937956
