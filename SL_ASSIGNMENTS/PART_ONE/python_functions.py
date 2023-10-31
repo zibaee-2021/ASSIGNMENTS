@@ -1,5 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
+from sklearn.model_selection import train_test_split
+import pandas as pd
 
 
 def transform_dataset_by_polynom_basis_k1_to_k4(x: list) -> list:
@@ -8,7 +10,7 @@ def transform_dataset_by_polynom_basis_k1_to_k4(x: list) -> list:
     :param x: The given independent variable values.
     :return: Four polynomial input values for k=1, k=2, k=3, k=4.
     """
-    X_1 = np.ones((len(x), 1)) # k=1 gives x^0, so filled with 1s. This is the bias term (i.e. y-intercept).
+    X_1 = np.ones((len(x), 1))  # k=1 gives x^0, so filled with 1s. This is the bias term (i.e. y-intercept).
     X_2 = np.array(x).reshape(-1, 1) # k=2
     X_2 = np.column_stack((X_1, X_2))
     X_3 = np.array([x_**2 for x_ in x]).reshape(-1, 1) # k=3
@@ -82,12 +84,17 @@ def calculate_MSEs(m: int, X: list, w: list, y: list) -> list:
     for the polynomial functions of different bases.
     :param m: Number of samples in dataset (expecting either 4, 30, or 1000).
     :param X: List of NumPy arrays. Each array contains transformed datasets of independent variable values,
-              according to the basis.
+              according to the basis. Each array is 2-dimensional i.e. (4,1), not (4,).
     :param w: Weights learned by least squares linear regression. List of NumPy arrays.
+    Each array is 1-dimensional, hence (4,), not (4,1).
+    A dot product of a 2-d array and 1-d array like X[1] @ w[1] (i.e. (4,2) @ (2,) produces a 1-d array of (4,).
     :param y: The dependent variable values corresponding to the independent variables of the dataset.
+    As a python list, addition or subtraction is compatible with a 1-d NumPy array.
+    So X[1] @ w[1] - y works and produces a 1-d NumPy array. So (4,2) @ (2,) - python list of length 4 gives (4,).
     :return: The mean squared error.
     """
     MSEs = []
+
     for i in range(len(X)):
         MSEs.append((1 / m) * (X[i] @ w[i] - y).T @ (X[i] @ w[i] - y))
     return MSEs
@@ -264,3 +271,87 @@ def run_test_sine_100_times(w: list)->list:
         test_errors_k1_to_k18 = compute_test_errors_sine(w)
         test_errors_k1_to_k18_list.append(test_errors_k1_to_k18)
     return test_errors_k1_to_k18_list
+
+
+def fit_lr_and_calculate_mse(m_train: int, x_train, y_train, m_test: int, x_test, y_test) -> tuple:
+    weights = compute_weights_of_lr_by_least_sqrs(X=[x_train], y=y_train)
+    # Reusing polynomial predictor function from part 1.1 but only up to degree 0 or 1,
+    # hence basis for k=1 or k=2, i.e. y = b or y = mx + b.
+    mse_train = calculate_MSEs(m=m_train, X=[x_train], w=weights, y=y_train)
+    mse_test = calculate_MSEs(m=m_test, X=[x_test], w=weights, y=y_test)
+    return mse_train[0], mse_test[0]
+
+
+def split_dataset_and_compute_20_MSEs_with_ones(ds) -> tuple:
+    _20_mse_train = []
+    _20_mse_test = []
+
+    for i in range(20):  # serves dual purpose: loop 20 times and provide seed for unique splits.
+
+        train_dataset, test_dataset = train_test_split(ds, test_size=1 / 3, random_state=i)
+        m_train = train_dataset.shape[0]
+        m_test = test_dataset.shape[0]
+
+        x_train = np.ones((m_train, 1))
+        y_train = train_dataset[:, -1]
+
+        x_test = np.ones((m_test, 1))
+        y_test = test_dataset[:, -1]
+
+        mse_train, mse_test = fit_lr_and_calculate_mse(m_train=m_train, x_train=x_train, y_train=y_train,
+                                                       m_test=m_test, x_test=x_test, y_test=y_test)
+        _20_mse_train.append(mse_train)
+        _20_mse_test.append(mse_test)
+
+    return _20_mse_train, _20_mse_test
+
+
+def split_dataset_and_compute_20_MSEs_with_single_attr(ds) -> tuple:
+    each_of_12_attr_mse_train = []
+    each_of_12_attr_mse_test = []
+
+    for col_num in range(ds.shape[1] - 1):
+        _20_mse_train = []
+        _20_mse_test = []
+        for i in range(20):  # serves dual purpose: loop 20 times and provide seed for unique splits.
+
+            train_dataset, test_dataset = train_test_split(ds, test_size=1 / 3, random_state=i)
+
+            m_train = train_dataset.shape[0]
+            x_train_single_attr = train_dataset[:, col_num]
+            x_train_single_attr = x_train_single_attr.reshape(-1, 1)
+            ones_train = np.ones((m_train, 1))
+            x_train = np.column_stack((ones_train, x_train_single_attr))
+            y_train = train_dataset[:, -1]
+
+            m_test = test_dataset.shape[0]
+            x_test_single_attr = test_dataset[:, col_num]
+            x_test_single_attr = x_test_single_attr.reshape(-1, 1)
+            ones_test = np.ones((m_test, 1))
+            x_test = np.column_stack((ones_test, x_test_single_attr))
+            y_test = test_dataset[:, -1]
+
+            mse_train, mse_test = fit_lr_and_calculate_mse(m_train=m_train, x_train=x_train, y_train=y_train,
+                                                                   m_test=m_test, x_test=x_test, y_test=y_test)
+            _20_mse_train.append(mse_train)
+            _20_mse_test.append(mse_test)
+
+        each_of_12_attr_mse_train.append(_20_mse_train)
+        each_of_12_attr_mse_test.append(_20_mse_test)
+
+    return each_of_12_attr_mse_train, each_of_12_attr_mse_test
+
+
+if __name__ == '__main__':
+    # dataset = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
+    #
+    a, b = split_dataset_and_compute_20_MSEs_with_ones()
+    # a, b = split_dataset_and_compute_20_MSEs_with_single_attr(np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1))
+
+    # dataset_x, dataset_y = [1, 2, 3, 4], [3, 2, 0, 5]
+    # X_k1_k2_k3_k4 = transform_dataset_by_polynom_basis_k1_to_k4(dataset_x)
+    # weights_k1_k2_k3_k4 = compute_weights_of_lr_by_least_sqrs(X_k1_k2_k3_k4, y=np.array(dataset_y).reshape(-1, 1))
+    # calculate_MSEs(m=len(dataset_x), X=X_k1_k2_k3_k4, w=weights_k1_k2_k3_k4, y=dataset_y)
+
+    # compute_training_errors_polynom()
+    print(b)
