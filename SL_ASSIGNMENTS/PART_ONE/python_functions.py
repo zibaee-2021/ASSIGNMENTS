@@ -1,7 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.model_selection import train_test_split
-import pandas as pd
 
 
 def transform_dataset_by_polynom_basis_k1_to_k4(x: list) -> list:
@@ -147,14 +146,14 @@ def plot_g_0p07_and_sin_sqrd_2pi_x(x, y, x_for_plot):
     plt.show()
 
 
-def transform_dataset_by_polynom_basis_k18(x: list) -> list:
+def transform_dataset_by_polynom_basis_k18(x):
     """
     Build polynomial function input values for independent variable x, for every basis up to 18.
     (The other 4 basis vectors (k = 2, 5, 10 and 14) are then sliced from this).
     :param x: The given independent variable values.
     :return: Four polynomial input values for k=2, k=5, k=10, k=14, k=18.
     """
-    X_k18 = np.column_stack((np.ones((len(x), 1)), np.array(x).reshape(-1, 1)))
+    X_k18 = np.column_stack((np.ones((len(x), 1)), x.reshape(-1, 1)))
     for k in range(3, 19):
         X_k18 = np.column_stack((X_k18, np.array([x_**(k - 1) for x_ in x]).reshape(-1, 1)))
     return X_k18
@@ -164,9 +163,9 @@ def plot_polynom_k2_k5_k10_k14_k18(x, y, y_preds, x_for_plot):
     _ , ax = plt.subplots()
     ax.set_xlim(0, 1)
     ax.set_ylim(-0.3, 1.5)
-    ax.scatter(x, y, color='red', s=10)
+    ax.scatter(x, y, color='black', s=15)
     linewidth=0.5
-    for y_pred, k in zip(y_preds, [2,5,10,14,18]):
+    for y_pred, k in zip(y_preds, [2, 5, 10, 14, 18]):
         ax.plot(x_for_plot, y_pred, label=f'k={k}', linewidth=linewidth)
         linewidth += 0.5
 
@@ -178,17 +177,17 @@ def plot_polynom_k2_k5_k10_k14_k18(x, y, y_preds, x_for_plot):
     plt.show()
 
 
-def compute_training_errors_polynom() -> tuple:
+def compute_weights_and_train_errors_polynom() -> tuple:
     g_dataset_30x, g_dataset_30y = generate_dataset_about_g(num_of_data_pairs=30)
     X_k18_30 = transform_dataset_by_polynom_basis_k18(x=g_dataset_30x)
     X_k1_to_k18_30 = [X_k18_30[:, :i] for i in range(1, 19)]
     weights_k1_to_k18 = compute_weights_of_lr_by_least_sqrs(X=X_k1_to_k18_30, y=g_dataset_30y)
-    training_errors_k1_to_k18 = calculate_MSEs(m=len(g_dataset_30x), X=X_k1_to_k18_30,
+    train_errors_k1_to_k18 = calculate_MSEs(m=len(g_dataset_30x), X=X_k1_to_k18_30,
                                                w=weights_k1_to_k18, y=g_dataset_30y)
-    return weights_k1_to_k18, training_errors_k1_to_k18
+    return weights_k1_to_k18, train_errors_k1_to_k18
 
 
-def plot_log_error_vs_k(k, log_error, train_or_test='training'):
+def plot_log_error_vs_k(k, log_error, train_or_test='train'):
     _ , ax = plt.subplots()
     ax.set_xlim(1, 18)
     # ax.set_ylim(-5,0)
@@ -204,73 +203,83 @@ def plot_log_error_vs_k(k, log_error, train_or_test='training'):
 def compute_test_errors_polynom(w: list) -> list:
     g_dataset_1000x, g_dataset_1000y = generate_dataset_about_g(num_of_data_pairs=1000)
     X_k18_1000 = transform_dataset_by_polynom_basis_k18(x=g_dataset_1000x)
-    X_k1_to_k18_1000 = [X_k18_1000[:,:i] for i in range(1, 19)]
+    X_k1_to_k18_1000 = [X_k18_1000[:, :i] for i in range(1, 19)]
     return calculate_MSEs(m=len(g_dataset_1000x), X=X_k1_to_k18_1000, w=w, y=g_dataset_1000y)
 
 
-def run_training_polynom_100_times() -> list:
-    training_errors_k1_to_k18_list = []
-    weights_k1_to_k18_list = []
-    for _ in range(100):
-        weights_k1_to_k18, training_errors_k1_to_k18 = compute_training_errors_polynom()
-        training_errors_k1_to_k18_list.append(training_errors_k1_to_k18)
-        weights_k1_to_k18_list.append(weights_k1_to_k18)
-    # weights_k1_to_k18 = np.mean(weights_k1_to_k18_list, axis=0)
-    return training_errors_k1_to_k18_list
+def train_weights_and_compute_mean_error_of_100runs_polynom() -> tuple:
+    train_errors_k1_to_k18_100runs = np.zeros((100, 18))
+    weights_k1_to_k18, train_errors_k1_to_k18 = compute_weights_and_train_errors_polynom()
+    train_errors_k1_to_k18_100runs[0] = train_errors_k1_to_k18
+    for i in range(1, 100):
+        _, train_errors_k1_to_k18 = compute_weights_and_train_errors_polynom()
+        train_errors_k1_to_k18_100runs[i] = train_errors_k1_to_k18
+    mean_train_errors_k1_to_k18 = np.mean(train_errors_k1_to_k18_100runs, axis=0)
+    return weights_k1_to_k18, mean_train_errors_k1_to_k18
 
 
-def run_test_polynom_100_times(w: list) -> list:
-    test_errors_k1_to_k18_list = []
-    for _ in range(100):
-        test_errors_k1_to_k18 = compute_test_errors_polynom(w)
-        test_errors_k1_to_k18_list.append(test_errors_k1_to_k18)
-    return test_errors_k1_to_k18_list
+def compute_mean_error_of_100runs_test_polynom(w: list):
+    test_errors_k1_to_k18_100runs = np.zeros((100, 18))
+    for i in range(100):
+        test_errors_k1_to_k18_100runs[i] = compute_test_errors_polynom(w)
+    return np.mean(test_errors_k1_to_k18_100runs, axis=0)
 
 
-def transform_dataset_by_sine_bases_k18(x: list) -> list:
-    X_k1_to_k18_list = []
-    X_k1_to_k18_list.append(np.array([np.sin(1 * np.pi * x_) for x_ in x]).reshape(-1, 1))
+def transform_dataset_by_sine_bases_k18(x):
+    X_k18 = x.reshape(-1, 1)
     for k in range(2, 19):
-        # temp_ary = np.array([np.sin(k * np.pi * x_) for x_ in x]).reshape(-1,1)
-        # X_k1_to_k18_list.append(temp_ary)
-        X_k1_to_k18_list.append(np.array([np.sin(k * np.pi * x_) for x_ in x]).reshape(-1,1))
-    return X_k1_to_k18_list
+        X_k18 = np.column_stack((X_k18, np.array([np.sin(k * np.pi * x_) for x_ in x]).reshape(-1, 1)))
+    return X_k18
 
 
-def compute_training_errors_sine() -> tuple:
+def compute_weights_and_train_errors_sine() -> tuple:
     g_dataset_30x, g_dataset_30y = generate_dataset_about_g(num_of_data_pairs=30)
-    X_k1_to_k18_30 = transform_dataset_by_sine_bases_k18(x=g_dataset_30x)
+    X_k18_30 = transform_dataset_by_sine_bases_k18(x=g_dataset_30x)
+    X_k1_to_k18_30 = [X_k18_30[:, :i] for i in range(1, 19)]
     weights_k1_to_k18 = compute_weights_of_lr_by_least_sqrs(X=X_k1_to_k18_30, y=g_dataset_30y)
-    training_errors_k1_to_k18 = calculate_MSEs(m=len(g_dataset_30x), X=X_k1_to_k18_30,
+    train_errors_k1_to_k18 = calculate_MSEs(m=len(g_dataset_30x), X=X_k1_to_k18_30,
                                                w=weights_k1_to_k18, y=g_dataset_30y)
-    return weights_k1_to_k18, training_errors_k1_to_k18
+    return weights_k1_to_k18, train_errors_k1_to_k18
+
+
+def plot_log_errors_for_train_and_test_vs_k(k, log_train_errors, log_test_errors):
+    _ , ax = plt.subplots()
+    ax.set_xlim(1, 18)
+    ax.scatter(k, log_train_errors, label='train', color='blue', s=5)
+    ax.scatter(k, log_test_errors, label='test', color='red', s=5)
+    ax.plot(k, log_train_errors, color='lightblue')
+    ax.plot(k, log_test_errors, color='salmon')
+    plt.xlabel('k')
+    plt.ylabel(f'natural log of error')
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    plt.show()
 
 
 def compute_test_errors_sine(w: list) -> list:
     g_dataset_1000x, g_dataset_1000y = generate_dataset_about_g(num_of_data_pairs=1000)
-    X_k1_to_k18_1000 = transform_dataset_by_sine_bases_k18(x=g_dataset_1000x)
+    X_k18_1000 = transform_dataset_by_sine_bases_k18(x=g_dataset_1000x)
+    X_k1_to_k18_1000 = [X_k18_1000[:, :i] for i in range(1, 19)]
     test_errors_k1_to_k18 = calculate_MSEs(m=len(g_dataset_1000x), X=X_k1_to_k18_1000, w=w, y=g_dataset_1000y)
     return test_errors_k1_to_k18
 
 
-def run_training_sine_100_times() -> list:
-    training_errors_k1_to_k18_list = []
-    weights_k1_to_k18_list = []
-    for _ in range(100):
-        weights_k1_to_k18, training_errors_k1_to_k18 = compute_training_errors_sine()
-        training_errors_k1_to_k18_list.append(training_errors_k1_to_k18)
-        # weights_k1_to_k18_list.append(weights_k1_to_k18)
-        # weights_k1_to_k18 = np.mean(weights_k1_to_k18_list, axis=0) # heterogenous array size,
-        # so would need more complicated logic to compute means of weights.
-    return training_errors_k1_to_k18_list
+def train_weights_and_compute_mean_error_of_100runs_sine() -> tuple:
+    train_errors_k1_to_k18_100runs = np.zeros((100, 18))
+    weights_k1_to_k18, train_errors_k1_to_k18 = compute_weights_and_train_errors_sine()
+    train_errors_k1_to_k18_100runs[0] = train_errors_k1_to_k18
+    for i in range(1, 100):
+        _, train_errors_k1_to_k18 = compute_weights_and_train_errors_sine()
+        train_errors_k1_to_k18_100runs[i] = train_errors_k1_to_k18
+    mean_train_errors_k1_to_k18 = np.mean(train_errors_k1_to_k18_100runs, axis=0)
+    return weights_k1_to_k18, mean_train_errors_k1_to_k18
 
 
-def run_test_sine_100_times(w: list)->list:
-    test_errors_k1_to_k18_list = []
-    for _ in range(100):
-        test_errors_k1_to_k18 = compute_test_errors_sine(w)
-        test_errors_k1_to_k18_list.append(test_errors_k1_to_k18)
-    return test_errors_k1_to_k18_list
+def compute_mean_error_of_100runs_test_sine(w: list):
+    test_errors_k1_to_k18_100runs = np.zeros((100, 18))
+    for i in range(100):
+        test_errors_k1_to_k18_100runs[i] = compute_test_errors_sine(w)
+    return np.mean(test_errors_k1_to_k18_100runs, axis=0)
 
 
 def fit_lr_and_calculate_mse(m_train: int, x_train, y_train, m_test: int, x_test, y_test) -> tuple:
@@ -373,68 +382,73 @@ def split_dataset_and_compute_20_MSEs_with_all_12_attr(ds) -> tuple:
     return _20_mse_train, _20_mse_test
 
 
-def solve_dual_optimisation(gammas, sigmas, l, y_train):
+def gaussian_kernel(X, sigma: float):
+    num_of_rows_of_x = X.shape[0]
+    kernel_matrix = np.empty((num_of_rows_of_x, num_of_rows_of_x))
+    for i in range(num_of_rows_of_x):
+        for j in range(num_of_rows_of_x):
+            pairwise_difference = X[i] - X[j]
+            sqrd_norm = np.square(np.linalg.norm(pairwise_difference))
+            kernel_matrix[i][j] = np.exp(-1 * sqrd_norm / 2 * np.square(sigma))
+    return kernel_matrix
+
+
+def evaluation_of_regression(alpha_star, X_train, X_test_row, sigma):
     """
-    :param gammas: Regularisation parameter gamma.
-    :param sigmas: Parameter for Gaussian kernel.
-    :param l: Training dataset size, denoted in the formula by `m_train` elsewhere.
-    :param y_train: The training data labels in column vector format.
+    Apply regression function by multiplying the regression coefficient (alpha_star) according to equation 13 in
+    question sheet.
     :return:
     """
-    def gaussian_kernel(x_i, x_j, sigmas):
-        return np.exp((- (np.square(np.linalg.norm(x_i - x_j))) / (2 * sigmas ** 2)))
+    num_of_rows_in_x_train = X_train.shape[0]
+    y_preds = np.empty(num_of_rows_in_x_train)
+    for i in range(num_of_rows_in_x_train):
+        pairwise_difference = X_train[i] - X_test_row
+        sqrd_norm = np.square(np.linalg.norm(pairwise_difference))
+        alpha_star_row = alpha_star[i]
+        kernel = np.exp(-1 * sqrd_norm / (2 * np.square(sigma)))
+        y_preds[i] = alpha_star_row * kernel
+    y_pred_for_given_x_test_row = np.sum(y_preds)
+    return y_pred_for_given_x_test_row
 
-    a_star = np.linalg.inv(gaussian_kernel(sigmas) + gammas @ (l * np.ones(l))) @ y_train
-    return a_star
+
+def solve_dual_optimisation(x_train, gamma, sigma, y_train):
+    """
+    Calculate optimal regression coefficient(s),`alpha_star`, of dual optimisation formula according to equation
+    12 of question sheet.
+    :param x_train: The training data features of dataset.
+    :param gamma: Regularisation parameter.
+    :param sigma: Parameter for Gaussian kernel.
+    :param y_train: The training data labels in column vector format.
+    :return: The regression coefficient.
+    """
+    kernel_matrix = gaussian_kernel(x_train, sigma)
+    l = x_train.shape[0]
+    alpha_star = (np.linalg.inv(kernel_matrix + gamma * l * np.identity(l))) @ y_train
+    return alpha_star
 
 
 def split_dataset_and_compute_MSEs_of_KRR_with_all_12_attr(ds) -> tuple:
-
-    mse_train = []
-    mse_test = []
-
     # Create a 5-fold CV split, on which to perform Kernel ridge regression with all combinations of
     train_dataset, test_dataset = train_test_split(ds, test_size=1 / 5)
 
     m_train, m_test = train_dataset.shape[0], test_dataset.shape[0]
     X_train, y_train, X_test, y_test = get_x_train_y_train_x_test_y_test(m_train=m_train, train_ds=train_dataset,
                                                                          m_test=m_test, test_ds=test_dataset)
-
-    # y := (y_1, ..., y_l)^T, where l is training set size, denotes a vector that contains the y-values of training set,
-    # the dual optimisation formula is given by a_star.
-
     gammas = [2 ** pow for pow in list(range(-40, -25))]
     sigmas_pows = [7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13]
     sigmas = [2**sigma_pow for sigma_pow in sigmas_pows]
 
-    solve_dual_optimisation()
+    errors_for_each_gamma_sigma_pair = np.empty((len(gammas), len(sigmas)))
 
+    # for g, gamma in enumerate(gammas):
+    for g, gamma in enumerate([2**-40, 2**-26]):
+        # for s, sigma in enumerate(sigmas):
+        for s, sigma in enumerate([2**7, 2**13]):
+            alpha_star = solve_dual_optimisation(X_train, gamma, sigma, y_train)
+            for x_test_row, y_test_row in zip(X_test, y_test):
+                y_test_pred = evaluation_of_regression(alpha_star=alpha_star, X_train=X_train,
+                                                                X_test_row=x_test_row, sigma=sigma)
+                errors_for_each_gamma_sigma_pair[g, s] = np.sqrt(np.square(y_test_pred - y_test_actual))
 
-    mse_train, mse_test = fit_lr_and_calculate_mse(m_train=m_train, x_train=X_train, y_train=y_train,
-                                                   m_test=m_test, x_test=X_test, y_test=y_test)
-    mse_train.append(mse_train)
-    mse_test.append(mse_test)
+    return 0
 
-    return mse_train, mse_test
-
-
-if __name__ == '__main__':
-    dataset = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
-    a, b = split_dataset_and_compute_MSEs_of_kernel_ridge_regr_with_all_12_attr(dataset)
-
-
-    # a, b = split_dataset_and_compute_20_MSEs_with_ones(dataset)
-    # a, b = split_dataset_and_compute_20_MSEs_with_single_attr(dataset)
-
-    # print(f'mean MSE for train dataset, using only 1 attributes={np.mean(a)}')  # gives 65.39992873551633
-    # print(f'mean MSE for test dataset, using only 1 attributes={np.mean(b)}')  # gives 68.3736527258721
-    # a, b = split_dataset_and_compute_20_MSEs_with_all_12_attr(dataset)
-
-    # dataset_x, dataset_y = [1, 2, 3, 4], [3, 2, 0, 5]
-    # X_k1_k2_k3_k4 = transform_dataset_by_polynom_basis_k1_to_k4(dataset_x)
-    # weights_k1_k2_k3_k4 = compute_weights_of_lr_by_least_sqrs(X_k1_k2_k3_k4, y=np.array(dataset_y).reshape(-1, 1))
-    # calculate_MSEs(m=len(dataset_x), X=X_k1_k2_k3_k4, w=weights_k1_k2_k3_k4, y=dataset_y)
-
-    # # compute_training_errors_polynom()
-    # print(f'mean MSE for train dataset, using all 12 attributes={np.mean(a)}')  # gives 21.70373755394515
-    # print(f'mean MSE for test dataset, using all 12 attributes={np.mean(b)}')  # gives 25.273765249937956
