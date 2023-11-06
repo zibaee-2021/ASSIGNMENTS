@@ -77,6 +77,7 @@ def plot_polynoms_k1_k2_k3_k4(x, y, y_preds: list, x_for_plot) -> None:
     plt.show()
 
 
+
 def calculate_MSEs(m: int, X: list, w: list, y: list) -> list:
     """
     Calculate mean squared error for each of the different linear regression model learned by least squares
@@ -382,14 +383,32 @@ def split_dataset_and_compute_means_of_20_MSEs_with_12_attrs(ds) -> tuple:
     return mean_of_20_train, mean_of_20_test
 
 
-def gaussian_kernel(X, sigma: float):
+def gaussian_kernel(X, sig: float):
+    """
+    Generates the Gaussian kernel matrix for the given input matrix and sigma value.
+    :param X: Input matrix. Expected to the training dataset.
+    :param sig: Bandwidth (i.e. variance) parameter for the Gaussian kernel.
+    :return: Kernel matrix.
+    """
     num_of_rows_of_x = X.shape[0]
     kernel_matrix = np.empty((num_of_rows_of_x, num_of_rows_of_x))
     for i in range(num_of_rows_of_x):
         for j in range(num_of_rows_of_x):
             pairwise_diff = X[i] - X[j]
             sqrd_norm = np.square(np.linalg.norm(pairwise_diff))
-            kernel_matrix[i][j] = np.exp(-1 * sqrd_norm / 2 * np.square(sigma))
+            kernel_matrix[i][j] = np.exp(-1 * sqrd_norm / (2 * np.square(sig)))
+    return kernel_matrix
+
+
+def gaussian_kernel_vectorised(X, sig):
+    """
+    Generates the Gaussian kernel matrix for the given input matrix and sigma value.
+    :param X: Input matrix. Expected to the training dataset.
+    :param sig: Bandwidth (i.e. variance) parameter for the Gaussian kernel.
+    :return: Kernel matrix.
+    """
+    sqrd_distances = np.sum((X[:, np.newaxis] - X[np.newaxis, :]) ** 2, axis=-1)
+    kernel_matrix = np.exp(-1 * sqrd_distances / (2 * np.square(sig)))
     return kernel_matrix
 
 
@@ -423,11 +442,11 @@ def solve_dual_optimisation(X_train, gamma, sigma, y_train):
     :param y_train: The training data labels in column vector format.
     :return: The regression coefficients, one for each training example (row of 12 numbers). e.g. shape (404,)
     """
-    kernel_matrix = gaussian_kernel(X_train, sigma)
+    # kernel_matrix = gaussian_kernel(X_train, sigma)
+    kernel_matrix = gaussian_kernel_vectorised(X=X_train, sig=sigma)
     l = X_train.shape[0]
     I = np.identity(l)
     right = (gamma * l * I)
-    # y_train1 = y_train.reshape(-1, 1)
     alpha_stars = (np.linalg.inv(kernel_matrix + right)) @ y_train.T
     return alpha_stars
 
@@ -444,8 +463,6 @@ def generate_gammas_and_sigmas() -> tuple:
         sigmas.append(2 ** pow)
         sigmas.append(2 ** (pow + 0.5))
     sigmas = sigmas[:-1]
-    g_len = len(gammas)
-    s_len = len(sigmas)
     return gammas, sigmas
 
 

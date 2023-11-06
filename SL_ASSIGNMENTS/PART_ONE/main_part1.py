@@ -125,32 +125,85 @@ import seaborn as sns
     # print(f'Mean MSE for train dataset, using all 12 attributes = {np.mean(MSEs_train_part_d)}')  # gives 25.3
     # print(f'Mean MSE for test dataset, using all 12 attributes = {np.mean(MSEs_test_part_d)}')  # gives 21.7
 
+
 if __name__ == '__main__':
     # #### 1.3 Kernelised ridge regression
+    # TRAIN
     ds = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
     train_ds, test_ds = train_test_split(ds, test_size=1/3)
-    mean_of_5folds, index_of_best_gamma, best_gamma, \
-        index_of_best_sigma, best_sigma = py_func.find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(train_ds)
-    print(f'mean_of_5folds={mean_of_5folds}, index_of_best_gamma={index_of_best_gamma}, best_gamma={best_gamma}, '
-          f'index_of_best_sigma={index_of_best_sigma}, best_sigma={best_sigma}')
+    mean_of_5folds_train, index_of_best_gamma_train, best_gamma_train, \
+        index_of_best_sigma_train, best_sigma_train = \
+        py_func.find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(train_ds)
+    print(f'index_of_best_gamma={index_of_best_gamma_train}, index_of_best_sigma={index_of_best_sigma_train}')
 
-    np.savetxt("mean_of_5folds.csv", mean_of_5folds, delimiter=",")
-
-    _, ax = plt.subplots(figsize=(10, 5))
-    sns.heatmap(mean_of_5folds, annot=False, fmt=".2f", ax=ax)
+    # TRAIN HEATMAP
+    np.savetxt("mean_of_5folds_train.csv", mean_of_5folds_train, delimiter=",")
+    _, ax = plt.subplots(figsize=(5, 5))
+    sns.heatmap(mean_of_5folds_train, annot=False, fmt=".2f", ax=ax)
     ax.set_xlabel('sigmas')
     ax.set_ylabel('gammas')
+    lowest_MSE_train = np.full(mean_of_5folds_train.shape, np.nan)
+    lowest_MSE_train[index_of_best_gamma_train, index_of_best_sigma_train] = \
+        mean_of_5folds_train[index_of_best_gamma_train, index_of_best_sigma_train]
+    sns.heatmap(lowest_MSE_train, annot=False, fmt=".05f", cmap='Reds', ax=ax, cbar=False, alpha=0.4)
+    ax.set_title('Mean MSEs vs gammas & sigmas - train')
     plt.tight_layout()
+    plt.savefig('plots/krr_mse_heatmap_train.jpg')
     plt.show()
+    plt.close()
 
-    ln_mean_of_5folds = np.log(mean_of_5folds)
-    np.savetxt("ln_of_mean_of_5folds.csv", ln_mean_of_5folds, delimiter=",")
-
-    _, ax = plt.subplots(figsize=(14, 5))
-    sns.heatmap(ln_mean_of_5folds, annot=False, fmt=".2f", ax=ax)
+    # TRAIN LOG HEATMAP
+    ln_mean_of_5folds_train = np.log(mean_of_5folds_train)
+    np.savetxt("ln_of_mean_of_5folds_train.csv", ln_mean_of_5folds_train, delimiter=",")
+    _, ax = plt.subplots(figsize=(5, 5))
+    sns.heatmap(ln_mean_of_5folds_train, annot=False, fmt=".2f", ax=ax)
     ax.set_xlabel('sigmas')
     ax.set_ylabel('gammas')
+    lowest_MSE_train = np.full(ln_mean_of_5folds_train.shape, np.nan)
+    lowest_MSE_train[index_of_best_gamma_train, index_of_best_sigma_train] = \
+        ln_mean_of_5folds_train[index_of_best_gamma_train, index_of_best_sigma_train]
+    sns.heatmap(lowest_MSE_train, annot=False, fmt=".05f", cmap='Reds', ax=ax, cbar=False, alpha=0.4)
+    ax.set_title('Ln mean MSEs vs gammas & sigmas - train')
     plt.tight_layout()
+    plt.savefig('plots/krr_log_mse_heatmap_train.jpg')
     plt.show()
+
+    # TEST --------------------------------------------------
+    mean_of_5folds_test, index_of_best_gamma_test, best_gamma_test, \
+        index_of_best_sigma_test, best_sigma_test = py_func.find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(test_ds)
+    print(f'index_of_best_gamma_test={index_of_best_gamma_test}, index_of_best_sigma_test={index_of_best_sigma_test}')
+
+    # TEST HEATMAP
+    np.savetxt("mean_of_5folds_test.csv", mean_of_5folds_test, delimiter=",")
+    _, ax = plt.subplots(figsize=(5, 5))
+    sns.heatmap(mean_of_5folds_test, annot=False, fmt=".2f", ax=ax)
+    ax.set_xlabel('sigmas')
+    ax.set_ylabel('gammas')
+    lowest_MSE_test = np.full(mean_of_5folds_test.shape, np.nan)
+    lowest_MSE_test[index_of_best_gamma_test, index_of_best_sigma_test] = \
+        mean_of_5folds_test[index_of_best_gamma_test, index_of_best_sigma_test]
+    sns.heatmap(lowest_MSE_test, annot=False, fmt=".05f", cmap='Reds', ax=ax, cbar=False, alpha=0.4)
+    ax.set_title('Mean MSEs vs gammas & sigmas - test')
+    plt.tight_layout()
+    plt.savefig('plots/krr_mse_heatmap_test.jpg')
+    plt.show()
+    plt.close()
+
+    # TEST (LOG HEATMAP)
+    ln_mean_of_5folds_test = np.log(mean_of_5folds_test)
+    np.savetxt("ln_of_mean_of_5folds_test.csv", ln_mean_of_5folds_test, delimiter=",")
+    _, ax = plt.subplots(figsize=(5, 5))
+    sns.heatmap(ln_mean_of_5folds_test, annot=False, fmt=".2f", ax=ax)
+    ax.set_xlabel('sigmas')
+    ax.set_ylabel('gammas')
+    lowest_MSE_test = np.full(ln_mean_of_5folds_test.shape, np.nan)
+    lowest_MSE_test[index_of_best_gamma_test, index_of_best_sigma_test] = \
+        ln_mean_of_5folds_test[index_of_best_gamma_test, index_of_best_sigma_test]
+    sns.heatmap(lowest_MSE_test, annot=False, fmt=".05f", cmap='Reds', ax=ax, cbar=False, alpha=0.4)
+    ax.set_title('Ln mean MSEs vs gammas & sigmas - test')
+    plt.tight_layout()
+    plt.savefig('plots/krr_log_mse_heatmap_test.jpg')
+    plt.show()
+
 
 
