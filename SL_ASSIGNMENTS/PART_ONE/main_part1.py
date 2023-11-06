@@ -1,7 +1,10 @@
 import numpy as np
 import python_functions as py_func
+from sklearn.model_selection import train_test_split
+from matplotlib import pyplot as plt
+import seaborn as sns
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
     # dataset_x, dataset_y = [1, 2, 3, 4], [3, 2, 0, 5]
     # X_k1_k2_k3_k4 = py_func.transform_dataset_by_polynom_basis_k1_to_k4(dataset_x)
     # weights_k1_k2_k3_k4 = py_func.compute_weights_of_lr_by_least_sqrs(X_k1_k2_k3_k4, y=np.array(dataset_y).reshape(-1, 1))
@@ -73,7 +76,7 @@ if __name__ == '__main__':
     # py_func.plot_log_errors_for_train_and_test_vs_k(k=list(range(1, 19)),
     #                                                 log_train_errors=np.log(train_errors_k1_to_k18_sin),
     #                                                 log_test_errors=np.log(test_errors_k1_to_k18_sin))
-
+    #
     # weights_k1_to_k18_sin, mean_train_errors_k1_to_k18_100runs = \
     #     py_func.train_weights_and_compute_mean_error_of_100runs_sine()
     # mean_test_errors_k1_to_k18_100runs = py_func.compute_mean_error_of_100runs_test_sine(w=weights_k1_to_k18_sin)
@@ -87,15 +90,19 @@ if __name__ == '__main__':
     # `curl -o boston-filter.csv http://www0.cs.ucl.ac.uk/staff/M.Herbster/boston-filter/Boston-filtered.csv`
 
     # dataset_np_headers_dropped
-    ds = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
+    # ds = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
 
     # #### Naive Regression
     # a. Using polynomial basis for k=1 only i.e. $y = b$.
     #
+    # MSEs_train_part_a, MSEs_test_part_a = py_func.split_dataset_and_compute_20_MSEs_with_ones(ds)
+    # mean_MSE_train_part_a = np.mean(MSEs_train_part_a, axis=0)
+    # mean_MSE_test_part_a = np.mean(MSEs_test_part_a, axis=0)
+    # print(f'mean_MSE_train_part_a {mean_MSE_train_part_a}')
+    # print(f'mean_MSE_test_part_a {mean_MSE_test_part_a}')
     # b. The constant function effectively determines the bias ($y$-intercept) of the linear regression.
     # It is the lowest predicted value of the dependent variable, the median house price.
 
-    MSEs_train_part_a, MSEs_test_part_a = py_func.split_dataset_and_compute_20_MSEs_with_ones(ds)
 
     # c. For each of the 12 attributes, perform a linear regression using only the single attribute but incorporating
     # a bias term so that the inputs are augmented with an additional 1 entry, (xi , 1), so that we learn a weight
@@ -103,15 +110,10 @@ if __name__ == '__main__':
 
     # (Does this mean average of the 12 weights or MSEs .. ?)
 
-    MSEs_train_part_c, MSEs_test_part_c = py_func.split_dataset_and_compute_20_MSEs_with_single_attr(ds)
-
-    means_train, means_test = [], []
-    for MSEs_train_part_c_per_attr, MSEs_test_part_c_per_attr in zip(MSEs_train_part_c, MSEs_test_part_c):
-        means_train.append(np.mean(MSEs_train_part_c_per_attr))
-        means_test.append(np.mean(MSEs_test_part_c_per_attr))
-
-    print(f'Means for each of the 12 attributes in train ds = \n{means_train}\n')
-    print(f'Means for each of the 12 attributes in test ds = \n{means_test}')
+    # mean_for_each_of_12_attr_mse_train, mean_for_each_of_12_attr_mse_test = \
+    #     py_func.split_dataset_and_compute_means_of_20_MSEs_with_single_attr(ds)
+    # print(f'mean_MSE_train_part_c {mean_for_each_of_12_attr_mse_train}')
+    # print(f'mean_MSE_test_part_c {mean_for_each_of_12_attr_mse_test}')
 
     # d. Perform linear regression using all of the data attributes at once.
     # Perform linear regression on the training set using this regressor, and incorporate a bias term as above.
@@ -119,27 +121,36 @@ if __name__ == '__main__':
     # Calculate the MSE on the training and test sets and note down the results.
     # You should find that this method outperforms any of the individual regressors.
 
-    MSEs_train_part_d, MSEs_test_part_d = py_func.split_dataset_and_compute_20_MSEs_with_all_12_attr(ds)
+    # MSEs_train_part_d, MSEs_test_part_d = py_func.split_dataset_and_compute_means_of_20_MSEs_with_12_attrs(ds)
+    # print(f'Mean MSE for train dataset, using all 12 attributes = {np.mean(MSEs_train_part_d)}')  # gives 25.3
+    # print(f'Mean MSE for test dataset, using all 12 attributes = {np.mean(MSEs_test_part_d)}')  # gives 21.7
 
-    print(
-        f'Mean MSE for train dataset, using all 12 attributes = {np.mean(MSEs_train_part_d)}')  # gives 65.399928735516
-    print(f'Mean MSE for test dataset, using all 12 attributes = {np.mean(MSEs_test_part_d)}')  # gives 68.373652725872
-
+if __name__ == '__main__':
     # #### 1.3 Kernelised ridge regression
+    ds = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
+    train_ds, test_ds = train_test_split(ds, test_size=1/3)
+    mean_of_5folds, index_of_best_gamma, best_gamma, \
+        index_of_best_sigma, best_sigma = py_func.find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(train_ds)
+    print(f'mean_of_5folds={mean_of_5folds}, index_of_best_gamma={index_of_best_gamma}, best_gamma={best_gamma}, '
+          f'index_of_best_sigma={index_of_best_sigma}, best_sigma={best_sigma}')
 
-    # A Kernel function is given as an element-wise product (I THOUGHT IT WAS DOT PRODUCT??:
-    # $K_{i,j} = K(x_i, x_j)$
-    # $l$ is the size of the training set, represented by `l` in the code.
-    # Run all permutations of the regularisation hyperparameter `gamma` and the Gaussian kernel hyperparameter `sigma`.
+    np.savetxt("mean_of_5folds.csv", mean_of_5folds, delimiter=",")
 
-    # Create a vector of gamma values [2^-40, 2^-39,...,2^-26]
-    gammas = [2 ** pow for pow in list(range(-40, -25))]
-    print(len(gammas))
-    # Create vector of sigma values [2^7, 2^7.5, . . . , 2^12.5, 2^13]
-    sigmas = []
-    for pow in list(range(7, 14)):
-        sigmas.append(2 ** pow)
-        sigmas.append(2 ** (pow + 0.5))
-    sigmas = sigmas[:-1]
-    print(len(sigmas))
+    _, ax = plt.subplots(figsize=(10, 5))
+    sns.heatmap(mean_of_5folds, annot=False, fmt=".2f", ax=ax)
+    ax.set_xlabel('sigmas')
+    ax.set_ylabel('gammas')
+    plt.tight_layout()
+    plt.show()
+
+    ln_mean_of_5folds = np.log(mean_of_5folds)
+    np.savetxt("ln_of_mean_of_5folds.csv", ln_mean_of_5folds, delimiter=",")
+
+    _, ax = plt.subplots(figsize=(14, 5))
+    sns.heatmap(ln_mean_of_5folds, annot=False, fmt=".2f", ax=ax)
+    ax.set_xlabel('sigmas')
+    ax.set_ylabel('gammas')
+    plt.tight_layout()
+    plt.show()
+
 

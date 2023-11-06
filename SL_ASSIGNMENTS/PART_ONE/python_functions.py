@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 
 
 def transform_dataset_by_polynom_basis_k1_to_k4(x: list) -> list:
@@ -253,6 +253,7 @@ def plot_log_errors_for_train_and_test_vs_k(k, log_train_errors, log_test_errors
     plt.ylabel(f'natural log of error')
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    plt.legend()
     plt.show()
 
 
@@ -284,8 +285,6 @@ def compute_mean_error_of_100runs_test_sine(w: list):
 
 def fit_lr_and_calculate_mse(m_train: int, x_train, y_train, m_test: int, x_test, y_test) -> tuple:
     weights = compute_weights_of_lr_by_least_sqrs(X=[x_train], y=y_train)
-    # Reusing polynomial predictor function from part 1.1 but only up to degree 0 or 1,
-    # hence basis for k=1 or k=2, i.e. y = b or y = mx + b.
     mse_train = calculate_MSEs(m=m_train, X=[x_train], w=weights, y=y_train)
     mse_test = calculate_MSEs(m=m_test, X=[x_test], w=weights, y=y_test)
     return mse_train[0], mse_test[0]
@@ -315,9 +314,9 @@ def split_dataset_and_compute_20_MSEs_with_ones(ds) -> tuple:
     return _20_mse_train, _20_mse_test
 
 
-def split_dataset_and_compute_20_MSEs_with_single_attr(ds) -> tuple:
-    each_of_12_attr_mse_train = []
-    each_of_12_attr_mse_test = []
+def split_dataset_and_compute_means_of_20_MSEs_with_single_attr(ds) -> tuple:
+    mean_for_each_of_12_attr_mse_train = []
+    mean_for_each_of_12_attr_mse_test = []
 
     for col_num in range(ds.shape[1] - 1):
         _20_mse_train = []
@@ -344,11 +343,12 @@ def split_dataset_and_compute_20_MSEs_with_single_attr(ds) -> tuple:
                                                                    m_test=m_test, x_test=x_test, y_test=y_test)
             _20_mse_train.append(mse_train)
             _20_mse_test.append(mse_test)
+        mean_of_20_train = np.mean(_20_mse_train)
+        mean_of_20_test = np.mean(_20_mse_test)
+        mean_for_each_of_12_attr_mse_train.append(mean_of_20_train)
+        mean_for_each_of_12_attr_mse_test.append(mean_of_20_test)
 
-        each_of_12_attr_mse_train.append(_20_mse_train)
-        each_of_12_attr_mse_test.append(_20_mse_test)
-
-    return each_of_12_attr_mse_train, each_of_12_attr_mse_test
+    return mean_for_each_of_12_attr_mse_train, mean_for_each_of_12_attr_mse_test
 
 
 def get_x_train_y_train_x_test_y_test(m_train: int, train_ds, m_test: int, test_ds) -> tuple:
@@ -363,10 +363,9 @@ def get_x_train_y_train_x_test_y_test(m_train: int, train_ds, m_test: int, test_
     return X_train, y_train, X_test, y_test
 
 
-def split_dataset_and_compute_20_MSEs_with_all_12_attr(ds) -> tuple:
+def split_dataset_and_compute_means_of_20_MSEs_with_12_attrs(ds) -> tuple:
+    _20_mse_train, _20_mse_test = [], []
 
-    _20_mse_train = []
-    _20_mse_test = []
     for i in range(20):  # serves dual purpose: loop 20 times and provide seed for unique splits.
 
         train_dataset, test_dataset = train_test_split(ds, test_size=1 / 3, random_state=i)
@@ -378,8 +377,9 @@ def split_dataset_and_compute_20_MSEs_with_all_12_attr(ds) -> tuple:
                                                        m_test=m_test, x_test=X_test, y_test=y_test)
         _20_mse_train.append(mse_train)
         _20_mse_test.append(mse_test)
-
-    return _20_mse_train, _20_mse_test
+    mean_of_20_train = np.mean(_20_mse_train)
+    mean_of_20_test = np.mean(_20_mse_test)
+    return mean_of_20_train, mean_of_20_test
 
 
 def gaussian_kernel(X, sigma: float):
@@ -387,68 +387,134 @@ def gaussian_kernel(X, sigma: float):
     kernel_matrix = np.empty((num_of_rows_of_x, num_of_rows_of_x))
     for i in range(num_of_rows_of_x):
         for j in range(num_of_rows_of_x):
-            pairwise_difference = X[i] - X[j]
-            sqrd_norm = np.square(np.linalg.norm(pairwise_difference))
+            pairwise_diff = X[i] - X[j]
+            sqrd_norm = np.square(np.linalg.norm(pairwise_diff))
             kernel_matrix[i][j] = np.exp(-1 * sqrd_norm / 2 * np.square(sigma))
     return kernel_matrix
 
 
-def evaluation_of_regression(alpha_star, X_train, X_test_row, sigma):
+def evaluation_of_regression(a_stars, X_train, X_val_row, sigma) -> float:
     """
-    Apply regression function by multiplying the regression coefficient (alpha_star) according to equation 13 in
-    question sheet.
-    :return:
+    Apply regression function by multiplying each regression coefficient (`alpha_star`) for each training
+    example, with kernel matrix of that training example and a fix test (i.e. validation) example, and taking the
+    sum for all examples, as per equation 13 in question sheet.
+    :param a_stars: The regression coefficients (`alpha_stars`), one for each training data point.
+    :param X_train: Training dataset.
+    :param X_val_row: One example of the validation dataset (i.e. a row of the feature dataset).
+    :param sigma: Bandwidth of kernel function.
+    :return: Predicted values of dependent variable y. Calculated for each row of X_val, and mean is returned.
     """
-    num_of_rows_in_x_train = X_train.shape[0]
-    y_preds = np.empty(num_of_rows_in_x_train)
-    for i in range(num_of_rows_in_x_train):
-        pairwise_difference = X_train[i] - X_test_row
-        sqrd_norm = np.square(np.linalg.norm(pairwise_difference))
-        alpha_star_row = alpha_star[i]
-        kernel = np.exp(-1 * sqrd_norm / (2 * np.square(sigma)))
-        y_preds[i] = alpha_star_row * kernel
-    y_pred_for_given_x_test_row = np.sum(y_preds)
-    return y_pred_for_given_x_test_row
+    # Vectorised rather than loop.
+    pairwise_diff = X_train - X_val_row
+    sqrd_norm = np.square(np.linalg.norm(pairwise_diff, axis=1))
+    kernel = np.exp(-1 * sqrd_norm / (2 * np.square(sigma)))
+    y_preds = a_stars * kernel
+    y_pred_for_given_x_val_row = float(np.sum(y_preds))
+    return y_pred_for_given_x_val_row
 
 
-def solve_dual_optimisation(x_train, gamma, sigma, y_train):
+def solve_dual_optimisation(X_train, gamma, sigma, y_train):
     """
     Calculate optimal regression coefficient(s),`alpha_star`, of dual optimisation formula according to equation
-    12 of question sheet.
-    :param x_train: The training data features of dataset.
+    12 of question sheet. This solves the kernel ridge regression.
+    :param X_train: The training data features of dataset.
     :param gamma: Regularisation parameter.
     :param sigma: Parameter for Gaussian kernel.
     :param y_train: The training data labels in column vector format.
-    :return: The regression coefficient.
+    :return: The regression coefficients, one for each training example (row of 12 numbers). e.g. shape (404,)
     """
-    kernel_matrix = gaussian_kernel(x_train, sigma)
-    l = x_train.shape[0]
-    alpha_star = (np.linalg.inv(kernel_matrix + gamma * l * np.identity(l))) @ y_train
-    return alpha_star
+    kernel_matrix = gaussian_kernel(X_train, sigma)
+    l = X_train.shape[0]
+    I = np.identity(l)
+    right = (gamma * l * I)
+    # y_train1 = y_train.reshape(-1, 1)
+    alpha_stars = (np.linalg.inv(kernel_matrix + right)) @ y_train.T
+    return alpha_stars
 
 
-def split_dataset_and_compute_MSEs_of_KRR_with_all_12_attr(ds) -> tuple:
-    # Create a 5-fold CV split, on which to perform Kernel ridge regression with all combinations of
-    train_dataset, test_dataset = train_test_split(ds, test_size=1 / 5)
-
-    m_train, m_test = train_dataset.shape[0], test_dataset.shape[0]
-    X_train, y_train, X_test, y_test = get_x_train_y_train_x_test_y_test(m_train=m_train, train_ds=train_dataset,
-                                                                         m_test=m_test, test_ds=test_dataset)
+def generate_gammas_and_sigmas() -> tuple:
+    """
+    Create gammas values [2^-40, 2^-39, . . . , 2^-26].
+    Create sigma values [2^7, 2^7.5, . . . , 2^12.5, 2^13].
+    :return:
+    """
     gammas = [2 ** pow for pow in list(range(-40, -25))]
-    sigmas_pows = [7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13]
-    sigmas = [2**sigma_pow for sigma_pow in sigmas_pows]
+    sigmas = []
+    for pow in list(range(7, 14)):
+        sigmas.append(2 ** pow)
+        sigmas.append(2 ** (pow + 0.5))
+    sigmas = sigmas[:-1]
+    g_len = len(gammas)
+    s_len = len(sigmas)
+    return gammas, sigmas
 
-    errors_for_each_gamma_sigma_pair = np.empty((len(gammas), len(sigmas)))
 
-    # for g, gamma in enumerate(gammas):
-    for g, gamma in enumerate([2**-40, 2**-26]):
-        # for s, sigma in enumerate(sigmas):
-        for s, sigma in enumerate([2**7, 2**13]):
-            alpha_star = solve_dual_optimisation(X_train, gamma, sigma, y_train)
-            for x_test_row, y_test_row in zip(X_test, y_test):
-                y_test_pred = evaluation_of_regression(alpha_star=alpha_star, X_train=X_train,
-                                                                X_test_row=x_test_row, sigma=sigma)
-                errors_for_each_gamma_sigma_pair[g, s] = np.sqrt(np.square(y_test_pred - y_test_actual))
+def generate_5_folds_from_dataset(ds) -> tuple:
+    kf = KFold(n_splits=5, shuffle=True)
+    _5_X_train, _5_y_train, _5_X_valid, _5_y_valid = [], [], [], []
+    for train_i, valid_i in kf.split(ds):
+        X_train, X_valid = ds[train_i][:, :12], ds[valid_i][:, :12]
+        y_train, y_valid = ds[train_i][:, -1], ds[valid_i][:, -1]
+        _5_X_train.append(X_train)
+        _5_X_valid.append(X_valid)
+        _5_y_train.append(y_train)
+        _5_y_valid.append(y_valid)
+    return _5_X_train, _5_y_train, _5_X_valid, _5_y_valid
 
-    return 0
+
+def find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(ds) -> tuple:
+    """
+    # 1. Loop through each of 5 train-validation dataset folds.
+    # 2. For each fold, loop through every combination of gamma and sigma (gs-pair).
+    # 3. For each gs-pair, loop through each example (row) of X_val to predict the corresponding y.
+    # 4. Calculate squared error (i.e. difference between predicted y and corresponding y_val).
+    # 5. Calculate mean of squared errors for this validation fold.
+    # 6. For each fold, store each mean MSE for every gs-pairs (195 pairs), producing a list of 5 x 195 MSE values.
+    # 7. Take the mean of each gs-pair across the 5 folds and pull out the gs-pair with the lowest MSE.
+    :param ds: Expected to be 2/3 of full dataset (Boston-filter.csv). Shape (337, 13).
+    :return: The gamma, sigma pair that gives the lowest MSE across 5 CV folds.
+    """
+    _5_X_train, _5_y_train, _5_X_valid, _5_y_valid = generate_5_folds_from_dataset(ds)
+    gammas, sigmas = generate_gammas_and_sigmas()
+    mean_of_sqrd_errors_per_gs_pair_for_one_x_val = np.zeros((len(gammas), len(sigmas)))
+    MSEs_for_each_gs_pair_for_all_5folds = []
+
+    # 1. Loop through each of 5 train-validation dataset folds.
+    for X_train, y_train, X_val, y_val in zip(_5_X_train, _5_y_train, _5_X_valid, _5_y_valid):
+        # 2. For each fold, loop through each combination of gamma and sigma (gs-pair).
+        for g, gamma in enumerate(gammas):
+            for s, sigma in enumerate(sigmas):
+                a_stars_for_this_gs_pair_and_fold = solve_dual_optimisation(X_train=X_train, gamma=gamma,
+                                                                            sigma=sigma, y_train=y_train)
+                # 3. For each gs-pair, loop through each example (row) of X_val to predict the corresponding y.
+                sqrd_errors = []
+                for i, (x_val_row, y_val_row) in enumerate(zip(X_val, y_val)):
+                    y_test_pred = evaluation_of_regression(a_stars=a_stars_for_this_gs_pair_and_fold,
+                                                           X_train=X_train, X_val_row=x_val_row, sigma=sigma)
+
+                    # 4. Calculate squared error (i.e. difference between predicted y and corresponding y_val).
+                    sqrd_errors.append(np.square(y_test_pred - y_val_row))
+
+                assert len(sqrd_errors) == len(y_val), 'sqrd_errors list is not the expected length'
+                # 5. Calculate mean of squared errors for this validation set.
+                mean_of_sqrd_errors = np.mean(sqrd_errors)
+                mean_of_sqrd_errors_per_gs_pair_for_one_x_val[g][s] = mean_of_sqrd_errors
+        # 6. For each fold, store each mean MSE for every gs-pairs (195 pairs), producing a list of 5 x 195 MSE values.
+        MSEs_for_each_gs_pair_for_all_5folds.append(mean_of_sqrd_errors_per_gs_pair_for_one_x_val)
+        mean_of_sqrd_errors_per_gs_pair_for_one_x_val = np.zeros((len(gammas), len(sigmas)))
+
+    fold1 = MSEs_for_each_gs_pair_for_all_5folds[0]
+    fold2 = MSEs_for_each_gs_pair_for_all_5folds[1]
+    fold3 = MSEs_for_each_gs_pair_for_all_5folds[2]
+    fold4 = MSEs_for_each_gs_pair_for_all_5folds[3]
+    fold5 = MSEs_for_each_gs_pair_for_all_5folds[4]
+
+    assert len(MSEs_for_each_gs_pair_for_all_5folds) == 5
+    # 7. Take the mean of each gs-pair across the 5 folds and pull out the gs-pair with the lowest MSE.
+    mean_of_5folds = (fold1 + fold2 + fold3 + fold4 + fold5) / 5
+    # np.argmin() flattens 2d to 1d array, so unravel_index() is required afterwards to restore original shape.
+    index_of_lowest_mse = np.argmin(mean_of_5folds)
+    g_of_gs_pair_of_lowest_mse, s_of_gs_pair_of_lowest_mse = np.unravel_index(index_of_lowest_mse, mean_of_5folds.shape)
+    return mean_of_5folds, g_of_gs_pair_of_lowest_mse, gammas[g_of_gs_pair_of_lowest_mse], \
+        s_of_gs_pair_of_lowest_mse, sigmas[s_of_gs_pair_of_lowest_mse]
 
