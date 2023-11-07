@@ -291,65 +291,65 @@ def fit_lr_and_calculate_mse(m_train: int, x_train, y_train, m_test: int, x_test
     return mse_train[0], mse_test[0]
 
 
-def split_dataset_and_compute_20_MSEs_with_ones(ds) -> tuple:
+def split_dataset_and_compute_mean_and_stdev_of_20_MSEs_with_ones(ds) -> tuple:
     _20_mse_train = []
     _20_mse_test = []
-
     for i in range(20):  # serves dual purpose: loop 20 times and provide seed for unique splits.
-
         train_dataset, test_dataset = train_test_split(ds, test_size=1 / 3, random_state=i)
         m_train = train_dataset.shape[0]
         m_test = test_dataset.shape[0]
-
         x_train = np.ones((m_train, 1))
         y_train = train_dataset[:, -1]
-
         x_test = np.ones((m_test, 1))
         y_test = test_dataset[:, -1]
-
         mse_train, mse_test = fit_lr_and_calculate_mse(m_train=m_train, x_train=x_train, y_train=y_train,
                                                        m_test=m_test, x_test=x_test, y_test=y_test)
         _20_mse_train.append(mse_train)
         _20_mse_test.append(mse_test)
+    assert (len(_20_mse_train) == 20), 'length of _20_mse_train is not expected size of 20'
+    assert (len(_20_mse_test) == 20), 'length of _20_mse_test is not expected size of 20'
+    mean_mse_train, stdev_mse_train = np.mean(_20_mse_train), np.std(_20_mse_train, ddof=1)
+    mean_mse_test, stdev_mse_test = np.mean(_20_mse_test), np.std(_20_mse_test, ddof=1)
+    return mean_mse_train, stdev_mse_train, mean_mse_test, stdev_mse_test
 
-    return _20_mse_train, _20_mse_test
 
-
-def split_dataset_and_compute_means_of_20_MSEs_with_single_attr(ds) -> tuple:
-    mean_for_each_of_12_attr_mse_train = []
-    mean_for_each_of_12_attr_mse_test = []
+def split_dataset_and_compute_means_and_stdevs_of_20_MSEs_with_single_attr(ds) -> tuple:
+    _12_mse_means_train, _12_mse_stdevs_train = [], []
+    _12_mse_means_test, _12_mse_stdevs_test = [], []
+    _20_mse_train, _20_mse_test = [], []
 
     for col_num in range(ds.shape[1] - 1):
         _20_mse_train = []
         _20_mse_test = []
         for i in range(20):  # serves dual purpose: loop 20 times and provide seed for unique splits.
-
             train_dataset, test_dataset = train_test_split(ds, test_size=1 / 3, random_state=i)
-
             m_train = train_dataset.shape[0]
             x_train_single_attr = train_dataset[:, col_num]
             x_train_single_attr = x_train_single_attr.reshape(-1, 1)
             ones_train = np.ones((m_train, 1))
             x_train = np.column_stack((ones_train, x_train_single_attr))
             y_train = train_dataset[:, -1]
-
             m_test = test_dataset.shape[0]
             x_test_single_attr = test_dataset[:, col_num]
             x_test_single_attr = x_test_single_attr.reshape(-1, 1)
             ones_test = np.ones((m_test, 1))
             x_test = np.column_stack((ones_test, x_test_single_attr))
             y_test = test_dataset[:, -1]
-
             mse_train, mse_test = fit_lr_and_calculate_mse(m_train=m_train, x_train=x_train, y_train=y_train,
-                                                                   m_test=m_test, x_test=x_test, y_test=y_test)
+                                                           m_test=m_test, x_test=x_test, y_test=y_test)
             _20_mse_train.append(mse_train)
             _20_mse_test.append(mse_test)
-        mean_of_20_train = np.mean(_20_mse_train)
-        mean_of_20_test = np.mean(_20_mse_test)
-        mean_for_each_of_12_attr_mse_train.append(mean_of_20_train)
-        mean_for_each_of_12_attr_mse_test.append(mean_of_20_test)
-
-    return mean_for_each_of_12_attr_mse_train, mean_for_each_of_12_attr_mse_test
+        assert (len(_20_mse_train) == 20), 'length of _20_mse_train is not expected size of 20'
+        assert (len(_20_mse_test) == 20), 'length of _20_mse_test is not expected size of 20'
+        _12_mse_means_train.append(np.mean(_20_mse_train))
+        _12_mse_stdevs_train.append(np.std(_20_mse_train, ddof=1))
+        _12_mse_means_test.append(np.mean(_20_mse_test))
+        _12_mse_stdevs_test.append(np.std(_20_mse_test, ddof=1))
+    assert (len(_12_mse_means_train) == 12), 'length of _12_mse_means_train is not expected size of 12'
+    assert (len(_12_mse_stdevs_train) == 12), 'length of _12_mse_stdevs_train is not expected size of 12'
+    assert (len(_12_mse_means_test) == 12), 'length of _12_mse_means_test is not expected size of 12'
+    assert (len(_12_mse_stdevs_test) == 12), 'length of _12_mse_stdevs_test is not expected size of 12'
+    return _12_mse_means_train, _12_mse_stdevs_train, _12_mse_means_test, _12_mse_stdevs_test
 
 
 def get_x_train_y_train_x_test_y_test(m_train: int, train_ds, m_test: int, test_ds) -> tuple:
@@ -364,24 +364,27 @@ def get_x_train_y_train_x_test_y_test(m_train: int, train_ds, m_test: int, test_
     return X_train, y_train, X_test, y_test
 
 
-def split_dataset_and_compute_means_of_20_MSEs_with_12_attrs(ds) -> tuple:
+def split_dataset_and_compute_means_and_stdevs_of_20_MSEs_with_all_12_attrs(ds) -> tuple:
     _20_mse_train, _20_mse_test = [], []
 
     for i in range(20):  # serves dual purpose: loop 20 times and provide seed for unique splits.
-
         train_dataset, test_dataset = train_test_split(ds, test_size=1 / 3, random_state=i)
         m_train, m_test = train_dataset.shape[0], test_dataset.shape[0]
-
         X_train, y_train, X_test, y_test = get_x_train_y_train_x_test_y_test(m_train=m_train, train_ds=train_dataset,
                                                                              m_test=m_test, test_ds=test_dataset)
         mse_train, mse_test = fit_lr_and_calculate_mse(m_train=m_train, x_train=X_train, y_train=y_train,
                                                        m_test=m_test, x_test=X_test, y_test=y_test)
         _20_mse_train.append(mse_train)
         _20_mse_test.append(mse_test)
-    mean_of_20_train = np.mean(_20_mse_train)
-    mean_of_20_test = np.mean(_20_mse_test)
-    return mean_of_20_train, mean_of_20_test
+    assert (len(_20_mse_train) == 20), 'length of _20_mse_train is not expected size of 20'
+    assert (len(_20_mse_test) == 20), 'length of _20_mse_test is not expected size of 20'
+    mse_mean_of_all_12_attr_train, mse_stdev_of_all_12_attr_train = np.mean(_20_mse_train), np.std(_20_mse_train,
+                                                                                                   ddof=1)
+    mse_mean_of_all_12_attr_test, mse_stdev_of_all_12_attr_test = np.mean(_20_mse_test), np.std(_20_mse_test, ddof=1)
+    return mse_mean_of_all_12_attr_train, mse_stdev_of_all_12_attr_train, mse_mean_of_all_12_attr_test, mse_stdev_of_all_12_attr_test
 
+
+# PYTHON FUNCTIONS FOR GAUSSIAN KERNEL RIDGE REGRESSION:
 
 def gaussian_kernel(X, sig: float):
     """
@@ -506,11 +509,11 @@ def find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(ds) -> tuple:
                 # 3. For each gs-pair, loop through each example (row) of X_val to predict the corresponding y.
                 sqrd_errors = []
                 for i, (x_val_row, y_val_row) in enumerate(zip(X_val, y_val)):
-                    y_test_pred = evaluation_of_regression(a_stars=a_stars_for_this_gs_pair_and_fold,
+                    y_val_pred = evaluation_of_regression(a_stars=a_stars_for_this_gs_pair_and_fold,
                                                            X_train=X_train, X_val_row=x_val_row, sigma=sigma)
 
                     # 4. Calculate squared error (i.e. difference between predicted y and corresponding y_val).
-                    sqrd_errors.append(np.square(y_test_pred - y_val_row))
+                    sqrd_errors.append(np.square(y_val_pred - y_val_row))
 
                 assert len(sqrd_errors) == len(y_val), 'sqrd_errors list is not the expected length'
                 # 5. Calculate mean of squared errors for this validation set.
@@ -528,10 +531,27 @@ def find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(ds) -> tuple:
 
     assert len(MSEs_for_each_gs_pair_for_all_5folds) == 5
     # 7. Take the mean of each gs-pair across the 5 folds and pull out the gs-pair with the lowest MSE.
-    mean_of_5folds = (fold1 + fold2 + fold3 + fold4 + fold5) / 5
+    mean_mse_of_5folds = (fold1 + fold2 + fold3 + fold4 + fold5) / 5
     # np.argmin() flattens 2d to 1d array, so unravel_index() is required afterwards to restore original shape.
-    index_of_lowest_mse = np.argmin(mean_of_5folds)
-    g_of_gs_pair_of_lowest_mse, s_of_gs_pair_of_lowest_mse = np.unravel_index(index_of_lowest_mse, mean_of_5folds.shape)
-    return mean_of_5folds, g_of_gs_pair_of_lowest_mse, gammas[g_of_gs_pair_of_lowest_mse], \
-        s_of_gs_pair_of_lowest_mse, sigmas[s_of_gs_pair_of_lowest_mse]
+    index_of_lowest_mse = np.argmin(mean_mse_of_5folds)
+    g_of_gs_pair_with_lowest_mse, s_of_gs_pair_with_lowest_mse = np.unravel_index(index_of_lowest_mse, mean_mse_of_5folds.shape)
+    return mean_mse_of_5folds, g_of_gs_pair_with_lowest_mse, gammas[g_of_gs_pair_with_lowest_mse], \
+        s_of_gs_pair_with_lowest_mse, sigmas[s_of_gs_pair_with_lowest_mse]
 
+
+def compute_MSEs_for_train_and_test(a_stars_best, best_sig, train_ds, test_ds):
+    X_train, y_train = train_ds[:, :12], train_ds[:, -1]
+    X_test, y_test = test_ds[:, :12], test_ds[:, -1]
+    sqrd_errors_train, sqrd_errors_test = [], []
+
+    for i, (x_train_row, y_train_row, x_test_row, y_test_row) in enumerate(zip(X_train, y_train, X_test, y_test)):
+        y_train_pred = evaluation_of_regression(a_stars=a_stars_best, X_train=X_train,
+                                                X_val_row=x_train_row, sigma=best_sig)
+        y_test_pred = evaluation_of_regression(a_stars=a_stars_best, X_train=X_train,
+                                               X_val_row=x_test_row, sigma=best_sig)
+        sqrd_errors_train.append(np.square(y_train_pred - y_train_row))
+        sqrd_errors_test.append(np.square(y_test_pred - y_test_row))
+    mse_train = np.mean(sqrd_errors_train)
+    mse_test = np.mean(sqrd_errors_test)
+
+    return mse_train, mse_test

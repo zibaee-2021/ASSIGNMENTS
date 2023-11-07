@@ -92,118 +92,172 @@ import seaborn as sns
     # dataset_np_headers_dropped
     # ds = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
 
-    # #### Naive Regression
-    # a. Using polynomial basis for k=1 only i.e. $y = b$.
-    #
-    # MSEs_train_part_a, MSEs_test_part_a = py_func.split_dataset_and_compute_20_MSEs_with_ones(ds)
-    # mean_MSE_train_part_a = np.mean(MSEs_train_part_a, axis=0)
-    # mean_MSE_test_part_a = np.mean(MSEs_test_part_a, axis=0)
-    # print(f'mean_MSE_train_part_a {mean_MSE_train_part_a}')
-    # print(f'mean_MSE_test_part_a {mean_MSE_test_part_a}')
-    # b. The constant function effectively determines the bias ($y$-intercept) of the linear regression.
-    # It is the lowest predicted value of the dependent variable, the median house price.
+# # PART 4a (with std devs added for part 5d)
+# # Perform linear regression using a vector of ones only, producing a constant function.
+# if __name__ == '__main__':
+#     ds = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
+#     mean_mse_train, stdev_mse_train, mean_mse_test, stdev_mse_test = \
+#         py_func.split_dataset_and_compute_mean_and_stdev_of_20_MSEs_with_ones(ds)
+#     print(f'mean_mse_train {mean_mse_train}')
+#     print(f'stdev_mse_train {stdev_mse_train}')
+#     print(f'mean_mse_test {mean_mse_test}')
+#     print(f'stdev_mse_test {stdev_mse_test}')
+#     pass
+# # PART 4c (with std devs added for part 5d)
+# # Perform linear regression using each of the 12 attributes, one at a time.
+# # if __name__ == '__main__':
+#     ds = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
+#     _12_mse_means_train, _12_mse_stdevs_train, _12_mse_means_test, _12_mse_stdevs_test = \
+#         py_func.split_dataset_and_compute_means_and_stdevs_of_20_MSEs_with_single_attr(ds)
+#     # print(f'_12_mse_means_train {_12_mse_means_train}')
+#     # print(f'_12_mse_stdevs_train {_12_mse_stdevs_train}')
+#     # print(f'_12_mse_means_test {_12_mse_means_test}')
+#     # print(f'_12_mse_stdevs_test {_12_mse_stdevs_test}')
+#
+#     _12_means_train_2dp = [round(num, 2) for num in _12_mse_means_train]
+#     _12_stdevs_train_2dp = [round(num, 2) for num in _12_mse_stdevs_train]
+#     _12_means_test_2dp = [round(num, 2) for num in _12_mse_means_test]
+#     _12_stdevs_test_2dp = [round(num, 2) for num in _12_mse_stdevs_test]
+#
+#     col_names = ['CRIM','ZN','INDUS','CHAS','NOX','RM','AGE','DIS','RAD','TAX','PTRATIO','LSTAT']
+#     table_latex = []
+#     for i, colname in enumerate(col_names):
+#         table_latex.append(f'LR ({colname})&{_12_means_train_2dp[i]}$\pm${_12_stdevs_train_2dp[i]}&'
+#                            f'{_12_means_test_2dp[i]}$\pm${_12_stdevs_test_2dp[i]}\\\hline \n')
+#     print(table_latex)
+#     with open('latex/table5d.txt', 'w') as f:
+#         f.write(''.join(table_latex))
+#
+#     pass
 
+# PART 4d (with std devs added for part 5d)
+# Perform linear regression using all of the 12 attributes together.
+# if __name__ == '__main__':
+#     ds = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
+#     mse_mean_of_all_12_attr_train, mse_stdev_of_all_12_attr_train, mse_mean_of_all_12_attr_test, mse_stdev_of_all_12_attr_test = \
+#     py_func.split_dataset_and_compute_means_and_stdevs_of_20_MSEs_with_all_12_attrs(ds)
+#     print(f'mse_mean_of_all_12_attr_train {mse_mean_of_all_12_attr_train}')
+#     print(f'mse_stdev_of_all_12_attr_train {mse_stdev_of_all_12_attr_train}')
+#     print(f'mse_mean_of_all_12_attr_test {mse_mean_of_all_12_attr_test}')
+#     print(f'mse_stdev_of_all_12_attr_test {mse_stdev_of_all_12_attr_test}')
+# if __name__ == '__main__':
+#     # #### 1.3 Kernelised ridge regression
+    # QUESTION 5 a-c
+    # TRAIN: 5FOLD CV TO GET MSEs FOR ALL GAMMAS & SIGMAS. PRINT BEST GAMMA & SIGMA PAIR.
+    # ds = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
+    # train_ds, test_ds = train_test_split(ds, test_size=1/3)
+    # mean_mses_of_5folds_train, index_of_best_gamma_train, best_gamma_train, \
+    #     index_of_best_sigma_train, best_sigma_train = \
+    #     py_func.find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(train_ds)
+    # print(f'index_of_best_gamma_train={index_of_best_gamma_train}, '
+    #       f'index_of_best_sigma_train={index_of_best_sigma_train}')
 
-    # c. For each of the 12 attributes, perform a linear regression using only the single attribute but incorporating
-    # a bias term so that the inputs are augmented with an additional 1 entry, (xi , 1), so that we learn a weight
-    # vector w ∈ R2.
+    # # TRAIN: GRID SEARCH HEATMAP OF MSEs HEATMAP
+    # np.savetxt('grid_search/mean_mses_of_5folds_train.csv', mean_mses_of_5folds_train, delimiter=",")
+    # _, ax = plt.subplots(figsize=(5, 5))
+    # sns.heatmap(mean_mses_of_5folds_train, annot=False, fmt=".2f", ax=ax)
+    # lowest_MSE_train = np.full(mean_mses_of_5folds_train.shape, np.nan)
+    # lowest_MSE_train[index_of_best_gamma_train, index_of_best_sigma_train] = \
+    #     mean_mses_of_5folds_train[index_of_best_gamma_train, index_of_best_sigma_train]
+    # sns.heatmap(lowest_MSE_train, annot=False, fmt=".05f", cmap='Reds', ax=ax, cbar=False, alpha=0.4)
+    # ax.set_title('Mean MSEs vs gammas & sigmas - train')
+    # ax.set_xlabel('sigmas')
+    # ax.set_ylabel('gammas')
+    # plt.tight_layout()
+    # plt.savefig('plots/krr_mse_heatmap_train.jpg')
+    # plt.show()
+    # # plt.close()
 
-    # (Does this mean average of the 12 weights or MSEs .. ?)
+    # TRAIN: GRID SEARCH HEATMAP OF LN(MSEs)
+    # ln_mean_mses_of_5folds_train = np.log(mean_mses_of_5folds_train)
+    # np.savetxt("grid_search/ln_of_mean_mses_of_5folds_train.csv", ln_mean_mses_of_5folds_train, delimiter=",")
+    # _, ax = plt.subplots(figsize=(5, 5))
+    # sns.heatmap(ln_mean_mses_of_5folds_train, annot=False, fmt=".2f", ax=ax)
+    # lowest_MSE_train = np.full(ln_mean_mses_of_5folds_train.shape, np.nan)
+    # lowest_MSE_train[index_of_best_gamma_train, index_of_best_sigma_train] = \
+    #     ln_mean_mses_of_5folds_train[index_of_best_gamma_train, index_of_best_sigma_train]
+    # sns.heatmap(lowest_MSE_train, annot=False, fmt=".05f", cmap='Reds', ax=ax, cbar=False, alpha=0.4)
+    # ax.set_title('Ln mean MSEs vs gammas & sigmas - train')
+    # ax.set_xlabel('sigmas')
+    # ax.set_ylabel('gammas')
+    # plt.tight_layout()
+    # plt.savefig('plots/krr_log_mse_heatmap_train.jpg')
+    # plt.show()
 
-    # mean_for_each_of_12_attr_mse_train, mean_for_each_of_12_attr_mse_test = \
-    #     py_func.split_dataset_and_compute_means_of_20_MSEs_with_single_attr(ds)
-    # print(f'mean_MSE_train_part_c {mean_for_each_of_12_attr_mse_train}')
-    # print(f'mean_MSE_test_part_c {mean_for_each_of_12_attr_mse_test}')
+    # USE BEST GAMMA & SIGMA TO COMPUTE MSEs FOR TRAIN & TEST (NO 5-FOLD CV):
 
-    # d. Perform linear regression using all of the data attributes at once.
-    # Perform linear regression on the training set using this regressor, and incorporate a bias term as above.
-    #
-    # Calculate the MSE on the training and test sets and note down the results.
-    # You should find that this method outperforms any of the individual regressors.
-
-    # MSEs_train_part_d, MSEs_test_part_d = py_func.split_dataset_and_compute_means_of_20_MSEs_with_12_attrs(ds)
-    # print(f'Mean MSE for train dataset, using all 12 attributes = {np.mean(MSEs_train_part_d)}')  # gives 25.3
-    # print(f'Mean MSE for test dataset, using all 12 attributes = {np.mean(MSEs_test_part_d)}')  # gives 21.7
-
-
+    # GET BEST ALPHA_STARS (REGRESSION COEFFICIENT), USING BEST GAMMA & SIGMA, AND TRAIN DS:
+#     X_train, y_train = train_ds[:, :12], train_ds[:, -1]
+#     best_alpha_stars = py_func.solve_dual_optimisation(X_train=X_train, gamma=best_gamma_train,
+#                                                        sigma=best_sigma_train, y_train=y_train)
+#
+#     # COMPUTE MSE FOR TRAIN DATASET USING ALPHA_STARS OF BEST GAMMA & SIGMA
+#     sqrd_errors_train = []
+#     mse_train = []
+#     mse_train_using_best_gs = 0
+#     X_train, y_train = train_ds[:, :12], train_ds[:, -1]
+#     for i, (x_train_row, y_train_row) in enumerate(zip(X_train, y_train)):
+#         y_train_pred = py_func.evaluation_of_regression(a_stars=best_alpha_stars, X_train=X_train,
+#                                                         X_val_row=x_train_row, sigma=best_sigma_train)
+#         sqrd_errors_train.append(np.square(y_train_pred - y_train_row))
+#         mse_train_using_best_gs = np.mean(sqrd_errors_train)
+#
+#     print(f'mse_train_best_gs={mse_train_using_best_gs}')
+#
+#     # COMPUTE MSE FOR TEST DATASET USING ALPHA_STARS OF BEST GAMMA & SIGMA
+#     sqrd_errors_test = []
+#     mse_test = []
+#     mse_test_using_best_gs = 0
+#     X_test, y_test = test_ds[:, :12], test_ds[:, -1]
+#     for i, (x_test_row, y_test_row) in enumerate(zip(X_test, y_test)):
+#         y_test_pred = py_func.evaluation_of_regression(a_stars=best_alpha_stars, X_train=X_train,
+#                                                        X_val_row=x_test_row, sigma=best_sigma_train)
+#         sqrd_errors_test.append(np.square(y_test_pred - y_test_row))
+#         mse_test_using_best_gs = np.mean(sqrd_errors_test)
+#
+#     print(f'mse_test_best_gs={mse_test_using_best_gs}')
+#
 if __name__ == '__main__':
-    # #### 1.3 Kernelised ridge regression
-    # TRAIN
+    #### 1.3 Kernelised ridge regression
+    # QUESTION 5d
+    _20_MSEs_train, _20_MSEs_test = [], []
     ds = np.genfromtxt('boston-filter.csv', delimiter=',', skip_header=1)
-    train_ds, test_ds = train_test_split(ds, test_size=1/3)
-    mean_of_5folds_train, index_of_best_gamma_train, best_gamma_train, \
-        index_of_best_sigma_train, best_sigma_train = \
-        py_func.find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(train_ds)
-    print(f'index_of_best_gamma={index_of_best_gamma_train}, index_of_best_sigma={index_of_best_sigma_train}')
 
-    # TRAIN HEATMAP
-    np.savetxt("mean_of_5folds_train.csv", mean_of_5folds_train, delimiter=",")
-    _, ax = plt.subplots(figsize=(5, 5))
-    sns.heatmap(mean_of_5folds_train, annot=False, fmt=".2f", ax=ax)
-    ax.set_xlabel('sigmas')
-    ax.set_ylabel('gammas')
-    lowest_MSE_train = np.full(mean_of_5folds_train.shape, np.nan)
-    lowest_MSE_train[index_of_best_gamma_train, index_of_best_sigma_train] = \
-        mean_of_5folds_train[index_of_best_gamma_train, index_of_best_sigma_train]
-    sns.heatmap(lowest_MSE_train, annot=False, fmt=".05f", cmap='Reds', ax=ax, cbar=False, alpha=0.4)
-    ax.set_title('Mean MSEs vs gammas & sigmas - train')
-    plt.tight_layout()
-    plt.savefig('plots/krr_mse_heatmap_train.jpg')
-    plt.show()
-    plt.close()
+    number_of_runs = 20
+    for i in range(number_of_runs):
+        print(f'{i+1}/20 KRR')
+        # 1. Find best gamma and sigma using 5 fold CV:
+        _, g_of_gs_pair_with_lowest_mse, _, s_of_gs_pair_with_lowest_mse, \
+            _ = py_func.find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(ds)
 
-    # TRAIN LOG HEATMAP
-    ln_mean_of_5folds_train = np.log(mean_of_5folds_train)
-    np.savetxt("ln_of_mean_of_5folds_train.csv", ln_mean_of_5folds_train, delimiter=",")
-    _, ax = plt.subplots(figsize=(5, 5))
-    sns.heatmap(ln_mean_of_5folds_train, annot=False, fmt=".2f", ax=ax)
-    ax.set_xlabel('sigmas')
-    ax.set_ylabel('gammas')
-    lowest_MSE_train = np.full(ln_mean_of_5folds_train.shape, np.nan)
-    lowest_MSE_train[index_of_best_gamma_train, index_of_best_sigma_train] = \
-        ln_mean_of_5folds_train[index_of_best_gamma_train, index_of_best_sigma_train]
-    sns.heatmap(lowest_MSE_train, annot=False, fmt=".05f", cmap='Reds', ax=ax, cbar=False, alpha=0.4)
-    ax.set_title('Ln mean MSEs vs gammas & sigmas - train')
-    plt.tight_layout()
-    plt.savefig('plots/krr_log_mse_heatmap_train.jpg')
-    plt.show()
+        sigma_powers = [7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13]
+        gamma_powers = [-40, -39, -38, -37, -36, -35, -34, -33, -32, -31, -30, -29, -28, -27, -26]
+        best_sigma = 2**sigma_powers[s_of_gs_pair_with_lowest_mse]
+        best_gamma = 2**gamma_powers[g_of_gs_pair_with_lowest_mse]
+        # 2. Split_dataset_2/3 to train, 1/3 test.
+        train_ds, test_ds = train_test_split(ds, test_size=1 / 3, random_state=i)
 
-    # TEST --------------------------------------------------
-    mean_of_5folds_test, index_of_best_gamma_test, best_gamma_test, \
-        index_of_best_sigma_test, best_sigma_test = py_func.find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(test_ds)
-    print(f'index_of_best_gamma_test={index_of_best_gamma_test}, index_of_best_sigma_test={index_of_best_sigma_test}')
+        # 3. Perform krr with best gs-pair on train to compute coefficient (alpha_stars)
+        X_train, y_train = train_ds[:, :12], train_ds[:, -1]
+        best_alpha_stars = py_func.solve_dual_optimisation(X_train=X_train, gamma=best_gamma,
+                                                           sigma=best_sigma, y_train=y_train)
+        # 4. Predict train and test using alpha_stars coefficient, compute MSEs and append to list of 20.
+        mse_train, mse_test = py_func.compute_MSEs_for_train_and_test(a_stars_best=best_alpha_stars,
+                                                                      best_sig=best_sigma, train_ds=train_ds,
+                                                                      test_ds=test_ds)
+        _20_MSEs_train.append(mse_train)
+        _20_MSEs_test.append(mse_test)
 
-    # TEST HEATMAP
-    np.savetxt("mean_of_5folds_test.csv", mean_of_5folds_test, delimiter=",")
-    _, ax = plt.subplots(figsize=(5, 5))
-    sns.heatmap(mean_of_5folds_test, annot=False, fmt=".2f", ax=ax)
-    ax.set_xlabel('sigmas')
-    ax.set_ylabel('gammas')
-    lowest_MSE_test = np.full(mean_of_5folds_test.shape, np.nan)
-    lowest_MSE_test[index_of_best_gamma_test, index_of_best_sigma_test] = \
-        mean_of_5folds_test[index_of_best_gamma_test, index_of_best_sigma_test]
-    sns.heatmap(lowest_MSE_test, annot=False, fmt=".05f", cmap='Reds', ax=ax, cbar=False, alpha=0.4)
-    ax.set_title('Mean MSEs vs gammas & sigmas - test')
-    plt.tight_layout()
-    plt.savefig('plots/krr_mse_heatmap_test.jpg')
-    plt.show()
-    plt.close()
+    # 5. Calc mean and stddev of 20 MSEs for train and of 20 MSEs of test. Print/save values for table 2.
+    krr_MSE_mean_train = np.mean(_20_MSEs_train)
+    krr_MSE_stdev_train = np.std(_20_MSEs_train, ddof=1)
+    krr_MSE_mean_test = np.mean(_20_MSEs_test)
+    krr_MSE_stdev_test = np.std(_20_MSEs_test, ddof=1)
+    with open('saved_values/krr_5d.txt', 'w') as f2:
+        f2.write(f'krr_MSE_mean_train={krr_MSE_mean_train}\nkrr_MSE_stdev_train={krr_MSE_stdev_train}\n'
+                 f'krr_MSE_mean_test={krr_MSE_mean_test}\nkrr_MSE_stdev_test {krr_MSE_stdev_test}\n')
+    print(f'krr_MSE_mean_train={krr_MSE_mean_train}, krr_MSE_stdev_train={krr_MSE_stdev_train}')
+    print(f'krr_MSE_mean_test={krr_MSE_mean_test}, krr_MSE_stdev_test={krr_MSE_stdev_test}')
 
-    # TEST (LOG HEATMAP)
-    ln_mean_of_5folds_test = np.log(mean_of_5folds_test)
-    np.savetxt("ln_of_mean_of_5folds_test.csv", ln_mean_of_5folds_test, delimiter=",")
-    _, ax = plt.subplots(figsize=(5, 5))
-    sns.heatmap(ln_mean_of_5folds_test, annot=False, fmt=".2f", ax=ax)
-    ax.set_xlabel('sigmas')
-    ax.set_ylabel('gammas')
-    lowest_MSE_test = np.full(ln_mean_of_5folds_test.shape, np.nan)
-    lowest_MSE_test[index_of_best_gamma_test, index_of_best_sigma_test] = \
-        ln_mean_of_5folds_test[index_of_best_gamma_test, index_of_best_sigma_test]
-    sns.heatmap(lowest_MSE_test, annot=False, fmt=".05f", cmap='Reds', ax=ax, cbar=False, alpha=0.4)
-    ax.set_title('Ln mean MSEs vs gammas & sigmas - test')
-    plt.tight_layout()
-    plt.savefig('plots/krr_log_mse_heatmap_test.jpg')
-    plt.show()
-
-
-
+    assert len(_20_MSEs_train) == number_of_runs, f'_20_MSEs_train is not expected length of {number_of_runs}'
+    assert len(_20_MSEs_test) == number_of_runs, f'_20_MSEs_test is not expected length of {number_of_runs}'
