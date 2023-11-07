@@ -1,0 +1,201 @@
+\documentclass[a4paper,12pt]{article}
+\linespread{1.15}
+\usepackage{tma}
+\usepackage{amsmath}
+\usepackage{siunitx}
+\newcommand{\Mod}[1]{\ (\mathrm{mod}\ #1)}
+\usepackage{tikz}
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+            \node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
+
+\mypin{student: 23092186}
+\mycourse{COMP0078 - CW1}
+
+%\marginnotes
+
+\begin{document}
+\section*{Question 1}
+\begin{enumerate}
+
+\item[(a)] 
+For each of the polynomial bases of dimension $k = 1,2,3,4$, the data set $\{(1, 3), (2, 2), (3, 0), (4, 5)\}$ is fit by linear regression using least squares, with their plots superimposed is shown in Fig. 1:
+
+\includegraphics[scale=0.6]{images/COMP0078_CW1_fig1.png}\\
+Fig. 1 \\
+\item[(b)] Using the weights computed for part (a), equations corresponding to the curves fitted for: \\
+k=1 is $y = 2.5$,\\
+k=2 is $y = 1.5 + 0.4x$,\\
+k=3 is $y = 9.0 - 7.1x + 1.5 x^2$,\\
+k=4 is $y = -5.0 + 15.2x -8.5x^2 + 1.3x^3$.\\
+(Coefficients shown to the nearest 1 decimal place.)
+\item[(c)] 
+For each fitted curve, the mean square error (to the nearest 2 decimal places) for:\\
+k=1 is 3.25,\\
+k=2 is 3.05,\\
+k=3 is 0.8,\\
+k=4 is 0.\\
+
+\end{enumerate} 
+\clearpage
+
+\section*{Question 2}
+
+\begin{enumerate}
+
+\item[(a)](i) 
+Plot of function $ \sin^{2}(2\pi x)$ in range $0 \leq x \leq 1$ with the points of given data set, superimposed (Fig. 2):
+
+\includegraphics[scale=0.5]{images/COMP0078_CW1_fig2.png}\\
+Fig. 2 \\
+
+\item[(a)](ii) 
+Fitting data set with polynomial bases of dimension $k = 2, 5, 10, 14, 18$, the plot of each of these 5 curves superimposed over a plot of data points is shown in Fig. 3:
+
+\includegraphics[scale=0.5]{images/COMP0078_CW1_fig3.png}\\
+Fig. 3 \\
+\end{enumerate} 
+\clearpage
+
+\section*{Question 2 contin.}
+
+\begin{enumerate}
+\item[(b)]
+Plot of natural log of training error versus polynomial dimension $k = 1, . . . , 18$ is shown in Fig. 4:
+
+\includegraphics[scale=0.5]{images/COMP0078_CW1_fig4.png}\\
+Fig. 4 \\
+
+\item[(c)]
+Plot of natural log of test error versus the polynomial dimension $k = 1, . . . , 18$, displaying overfitting at higher dimensions, is shown in Fig. 5:
+
+\includegraphics[scale=0.5]{images/COMP0078_CW1_fig5.png}\\
+Fig. 5 (Note the y-axis range differs from Fig. 4)\\
+
+\end{enumerate}
+\clearpage
+
+\section*{Question 2 contin.}
+
+\begin{enumerate}
+
+\item[(d)]
+
+Plot of average results of a 100 runs for training dataset is shown in Fig. 6:
+
+\includegraphics[scale=0.5]{images/COMP0078_CW1_fig6.png}\\
+Fig. 6 \\
+
+Plot of average results of a 100 runs for test dataset is shown in Fig. 7:
+
+\includegraphics[scale=0.5]{images/COMP0078_CW1_fig7.png}\\
+Fig. 7 \\
+
+\end{enumerate}
+\clearpage
+\section*{Question 3}
+Repeating 2(b) and (c) with basis $\{\sin(\pi x), \sin(2\pi x), \sin(3\pi x), . . . , sin(k\pi x)\}$ \\ (for $k = 1,...,18$). Superimposed plots of the training and test datasets is shown in Fig. 8:
+
+\includegraphics[scale=0.5]{images/COMP0078_CW1_fig8.png}\\
+Fig. 8 \\
+
+Repeating 2(d) with sine basis given above, averaging error over 100 runs. Superimposed plots of training and test datasets is shown in Fig. 9:
+
+\includegraphics[scale=0.5]{images/COMP0078_CW1_fig9.png}\\
+Fig. 9 \\
+
+\clearpage
+
+\section*{Question 4}
+
+\begin{enumerate}
+\item[(a)] 
+The mean MSE of 20 MSEs for training dataset 83.4 (to 3 s.f.).\\
+The mean MSE of 20 MSEs for test dataset 86.6 (to 3 s.f.).
+\item[(b)] 
+Fitting the constant function here,  $y = b$, where $b$ is the $y$-intercept, to the data, by least squares linear regression, gives rise to the mean of the $y$ values. Here, this would be the mean house price.
+\item[(c)] 
+The mean MSE of 20 MSEs, for each of the attributes individually, (to 3 s.f.) is shown in Table 1:\\\\
+{\tiny
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+dataset&CRIM&ZN&INDUS&CHAS&NOX&RM&AGE&DIS&RAD&TAX&PTRATIO&LSTAT\\
+\hline
+train&70.7&72.0&64.1&80.3&68.1&43.7&71.4&78.0&71.6&65.3&62.1&37.5\\
+\hline
+test&74.5&76.8&66.2&85.6&71.1&43.8&74.9&81.8&73.5&67.2&64.2&40.9\\
+\hline
+\end{tabular}\par 
+}
+Table 1.
+
+\item[(d)] 
+The mean MSE of 20 MSEs, using all 12 attributes, (to 3 s.f.) for:\\
+training dataset is:  25.3,\\
+test dataset is: 21.7.\\
+This indicates a significant improvement over the best single predictor which appears to be LSTAT, with an MSE of 37.5 on the training dataset and 40.9 on the test dataset. (The focus in particular should be on comparing the test dataset MSEs).
+
+\end{enumerate}
+\clearpage
+\section*{Question 5}
+\begin{enumerate}
+\item[(a)] Using 5-fold cross-validation and 2/3 of the full dataset, the $\gamma$ and $\sigma$ pair of values that gave the lowest MSE for predictions with kernel ridge regression with a Gaussian kernel, was $\gamma=2^{-30}$ and $\sigma=2^{9.5}$. (Although it changed from one 5-fold CV run to the next, presumably because sklearn's KFold performs a random shuffle before dividing a dataset into 5 parts).
+
+\item[(b)] Plot of the cross-validation error (natural log of the mean MSE over 5 folds) as a function of $\gamma$ and $\sigma$ is shown in Fig. 10. The darker the colour, the lower the MSE. The optimal pair of gamma and sigma (as given in part (a)) is highlighted with grey in the heatmap:
+
+\includegraphics[scale=0.5]{images/COMP0078_CW1_fig10.png}\\
+Fig. 10 \\
+
+\item[(c)] MSE on training and test sets for the best $\gamma$ and $\sigma$ (from part (a)), is 8.38 for the training dataset, and 11.5  for the test dataset (to 3 s.f.). 
+
+\end{enumerate}
+\clearpage
+\section*{Question 5d}
+\begin{enumerate}
+
+\item[(d)] 
+MSE means and sample standard deviations for naive regression, linear regression with single attributes, all 12 attributes and KRR are shown (to 2 d.p) in Table 2.\\\\
+\begin{tabular}{|c|c|c|}
+\hline
+$\textbf{Method}$&$\textbf{MSE train}$&$\textbf{MSE test}$\\
+\hline
+Naive Regression&83.44$\pm$5.25&86.63$\pm$10.59\\ \hline
+LR (CRIM)&70.7$\pm$5.43&74.49$\pm$10.81\\ \hline
+LR (ZN)&72.04$\pm$4.93&76.79$\pm$9.9\\ \hline
+LR (INDUS)&64.05$\pm$5.3&66.16$\pm$10.65\\ \hline
+LR (CHAS)&80.35$\pm$5.07&85.57$\pm$10.31\\ \hline
+LR (NOX)&68.12$\pm$5.25&71.11$\pm$10.45\\ \hline
+LR (RM)&43.68$\pm$2.52&43.81$\pm$5.13\\ \hline
+LR (AGE)&71.37$\pm$5.52&74.94$\pm$11.01\\ \hline
+LR (DIS)&78.04$\pm$5.53&81.8$\pm$10.97\\ \hline
+LR (RAD)&71.56$\pm$5.64&73.53$\pm$11.29\\ \hline
+LR (TAX)&65.32$\pm$5.62&67.24$\pm$11.25\\ \hline
+LR (PTRATIO)&62.09$\pm$4.19&64.18$\pm$8.6\\ \hline
+LR (LSTAT)&37.48$\pm$2.5&40.88$\pm$5.21\\ \hline
+LR (All 12)&21.7$\pm$1.35&25.27$\pm$2.85\\ \hline
+KRR&6.16$\pm$1.38&13.2$\pm$2.16\\
+\hline
+\end{tabular}\par 
+Table 2.
+
+\end{enumerate}
+\clearpage
+\section*{Question 6}
+\begin{enumerate}
+\item[(a)]
+\item[(b)]
+\end{enumerate}
+\clearpage
+\section*{Question 7}
+\begin{enumerate}
+\item[(a)]
+\item[(b)] 
+\end{enumerate}
+\clearpage
+\section*{Question 8}
+\begin{enumerate}
+\item[(a)]
+\item[(b)] 
+\end{enumerate}
+\clearpage
+
+\end{document}
