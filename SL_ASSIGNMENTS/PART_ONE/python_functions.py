@@ -539,7 +539,7 @@ def find_gamma_sigma_pair_with_lowest_MSE_using_gaussian_KRR(ds) -> tuple:
         s_of_gs_pair_with_lowest_mse, sigmas[s_of_gs_pair_with_lowest_mse]
 
 
-def compute_MSEs_for_train_and_test(a_stars_best, best_sig, train_ds, test_ds):
+def compute_krr_MSEs_for_train_and_test(a_stars_best, best_sig, train_ds, test_ds):
     X_train, y_train = train_ds[:, :12], train_ds[:, -1]
     X_test, y_test = test_ds[:, :12], test_ds[:, -1]
     sqrd_errors_train, sqrd_errors_test = [], []

@@ -242,9 +242,9 @@ if __name__ == '__main__':
         best_alpha_stars = py_func.solve_dual_optimisation(X_train=X_train, gamma=best_gamma,
                                                            sigma=best_sigma, y_train=y_train)
         # 4. Predict train and test using alpha_stars coefficient, compute MSEs and append to list of 20.
-        mse_train, mse_test = py_func.compute_MSEs_for_train_and_test(a_stars_best=best_alpha_stars,
-                                                                      best_sig=best_sigma, train_ds=train_ds,
-                                                                      test_ds=test_ds)
+        mse_train, mse_test = py_func.compute_krr_MSEs_for_train_and_test(a_stars_best=best_alpha_stars,
+                                                                          best_sig=best_sigma, train_ds=train_ds,
+                                                                          test_ds=test_ds)
         _20_MSEs_train.append(mse_train)
         _20_MSEs_test.append(mse_test)
 
