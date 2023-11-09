@@ -16,7 +16,7 @@ if __name__ == '__main__':
     # Question 7:
     num_of_centres = 5000
     y_errors = []
-    all_100_gen_errors = np.zeros((100, 49))
+    all_100_gen_errors = np.zeros((100, 50))
 
     for i in range(100):
         num_of_grid_points = 100
@@ -40,6 +40,7 @@ if __name__ == '__main__':
         gen_errors = np.where(maj_class != y_test, 1, 0)
         gen_errors = np.sum(gen_errors) / 1000
         all_100_gen_errors[i, 0] = gen_errors
+        # Note index 0 will be empty as I'm using v (1-49) as index.
 
         for v in range(2, 50):
             # Reshape (1000,2) to (1000,1,2) to enable broadcasting
