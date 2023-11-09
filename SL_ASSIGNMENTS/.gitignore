@@ -11,5 +11,5 @@ COMP0078_CW1.pdf
 *.aux
 *.log
 *.synctex.gz
-*.sty
 images
+plots
