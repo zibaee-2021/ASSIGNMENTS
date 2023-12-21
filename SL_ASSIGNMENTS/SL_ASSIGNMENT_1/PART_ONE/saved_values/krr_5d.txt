@@ -1,0 +1,4 @@
+krr_MSE_mean_train=6.162526209562611
+krr_MSE_stdev_train=1.3763539972334422
+krr_MSE_mean_test=13.199382151151639
+krr_MSE_stdev_test 2.1640803618252975
