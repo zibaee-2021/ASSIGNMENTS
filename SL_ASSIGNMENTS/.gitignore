@@ -13,3 +13,5 @@ COMP0078_CW1.pdf
 *.synctex.gz
 images
 plots
+*OBSIDIAN
+*.obsidian
