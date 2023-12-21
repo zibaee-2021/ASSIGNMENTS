@@ -1,0 +1,29 @@
+dtrain123=Import["http://www0.cs.ucl.ac.uk/staff/M.Herbster/SL/misqc/dtrain123.dat","Table"];
+
+Dimensions[dtrain123]
+
+dtest123=Import["http://www0.cs.ucl.ac.uk/staff/M.Herbster/SL/misqc/dtest123.dat","Table"] ;
+
+plotChar[char_]:= Module[{data,rep},\[IndentingNewLine]rep = Take[char,{2,257}];\[IndentingNewLine]data = Table[rep[[16*i+j+1]],{i,15,0,-1},{j,0,15}] ;\[IndentingNewLine]ListDensityPlot[data, Mesh -> False,PlotLabel->"The number "<>ToString[char[[1]]]];\[IndentingNewLine]] ;
+
+plotChar[dtrain123[[1]]]
+
+kerval[a_,b_] := (a.b)^3
+
+mysign[x_] := If[x<=0.0,-1.0,1.0] 
+
+clearGLBcls[data_]  := \[IndentingNewLine]GLBcls=Table[0.0,{3},{Length[data]}];
+
+classpredk[dat_,pat_,cl_]  := Module[{lcd =Length[cl],i},\[IndentingNewLine]Sum[cl\[LeftDoubleBracket]i〛kerval[pat,Take[dat\[LeftDoubleBracket]i〛,{2,257}]], {i,lcd}]]
+
+traingen[dat_] := Module[{i,val,y,preds,mistakes=0},\[IndentingNewLine]For[i=1,i<=Length[dat],i++,\[IndentingNewLine]val = dat[[i]][[1]] ;\[IndentingNewLine]\[IndentingNewLine](* get predictions of the 3 classifiers *);\[IndentingNewLine]preds = Table[classpredk[dat,Take[dat\[LeftDoubleBracket]i〛,{2,257}],GLBcls\[LeftDoubleBracket]j〛],{j,1,3}]  ;\[IndentingNewLine]\[IndentingNewLine]\[IndentingNewLine]maxc= - 10000000000000000.0;\[IndentingNewLine]For[j=1,j<=3,j++,\[IndentingNewLine]y = If[val\[Equal]j,1.0,-1.0 ];\[IndentingNewLine]\[IndentingNewLine](* update *)\[IndentingNewLine]If[y preds\[LeftDoubleBracket]j〛<= 0,\[IndentingNewLine]GLBcls\[LeftDoubleBracket]j,i〛= GLBcls\[LeftDoubleBracket]j,i〛 -mysign[preds\[LeftDoubleBracket]j〛]] ;\[IndentingNewLine]If[preds\[LeftDoubleBracket]j〛>maxc,(maxc=preds\[LeftDoubleBracket]j〛;maxi=j)];\[IndentingNewLine]];\[IndentingNewLine]If[maxi != val,mistakes++] ;\[IndentingNewLine]];mistakes] ;\[IndentingNewLine]\[IndentingNewLine]
+
+testclassifiers[dat_,testdat_] := Module[{i,val,y,preds,mistakes=0},\[IndentingNewLine]For[i=1,i<=Length[testdat],i++,\[IndentingNewLine]val = testdat[[i]][[1]];\[IndentingNewLine]preds = Table[classpredk[dat,Take[testdat\[LeftDoubleBracket]i〛,{2,257}],GLBcls\[LeftDoubleBracket]j〛],{j,1,3}]  ;\[IndentingNewLine]maxc= - 1000000000.0;\[IndentingNewLine]For[j=1,j<=3,j++,\[IndentingNewLine]y = If[val\[Equal]j,1.0,-1.0 ];\[IndentingNewLine]If[preds\[LeftDoubleBracket]j〛>maxc,(maxc=preds\[LeftDoubleBracket]j〛;maxi=j)];\[IndentingNewLine]];\[IndentingNewLine]If[maxi != val,mistakes++] ;\[IndentingNewLine]]; N[mistakes/Length[testdat]]] ;\[IndentingNewLine]
+
+demo[train_,test_] := Module[{i,rtn},\[IndentingNewLine]clearGLBcls[train];\[IndentingNewLine]Do[ (* 3 iterations chosen arbitrarily *)\[IndentingNewLine]rtn = traingen[train] //Timing ;\[IndentingNewLine]Print["Training - epoch ",i," required ",rtn[[1]],\[IndentingNewLine] " with ",rtn[[2]]," mistakes out of ",Length[train]," items."] ;\[IndentingNewLine]rtn = testclassifiers[train,test] //Timing ;\[IndentingNewLine]Print["Testing - epoch ",i," required ",rtn[[1]],\[IndentingNewLine]" with a test error of ",NumberForm[rtn[[2]]*100,3],"%."] ;,{i,3}]]\[IndentingNewLine]
+
+demo[dtrain123,dtest123];
+
+dtrain123
+
+
