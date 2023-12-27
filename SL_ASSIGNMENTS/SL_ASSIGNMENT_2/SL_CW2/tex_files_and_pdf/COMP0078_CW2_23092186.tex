@@ -44,13 +44,15 @@ $7$&0.07$\pm$0.03&0.62$\pm$0.07\\
 Table 1.
 
 \item[(2)] 
-A “best” parameter $d^*$ is determined by 5-fold cross-validation of the $80\%$ training data split. \\
-Using this $d^*$, we retrain on the full $80\%$ training set. The test errors are computed on the remaining $20\%$ using the same $d^*$. \\
-The test error for this value of $d^*$ is recorded and the process above is repeated 19 more times, resulting in 20 $d^*$ and 20 test errors.\\
-The mean test error and mean $d^*$ is 00.00 $\pm$ 0.0 and 0.0 respectively.
+A “best” parameter $d^*$ is determined 20 times by 5-fold cross-validation of the $80\%$ training data split. \\
+Using this $d^*$, we re-train weights with the full $80\%$ training set and run tests on the remaining 20\% errors. \\
+Of the 20 $d^*$s, the mean and standard deviation was 5.55 $\pm$ 0.67.
+Of the same 20 for which tests were run (on the 20\% dataset), the mean and standard deviation was 0.60 $\pm$ 0.09.
 
 \end{enumerate}
 \clearpage
+
+
 \section*{3 Kernel perceptron contin.}
 \begin{enumerate}
 
