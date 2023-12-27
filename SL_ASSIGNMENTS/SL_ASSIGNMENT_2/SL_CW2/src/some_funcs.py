@@ -122,6 +122,20 @@ def convert_y_to_vector(y, k_classes):
     return y_vec
 
 
+def unused_code():
+    # # These updates equation below (i.e. `alpha = alpha - sign(preds)`) was more effective at
+    # # mis-classifying than classifying. DO NOT USE!
+    # # Predictions for this data point
+    # preds_at_t = preds[:, t]
+    # # Convert raw values to -1 or 1
+    # preds_signs_at_t = np.ones((k_classes, 1))
+    # preds_signs_at_t[preds_at_t <= 0.0] = -1.0
+    # current_alphas_for_misclassfd_at_t = alpha_vec[misclass_mask_at_t, t].reshape(-1, 1)
+    # update_vals_for_misclassfd_at_t = preds_signs_at_t[misclass_mask_at_t].reshape(-1, 1)
+    # updated_alphas_at_t = (current_alphas_for_misclassfd_at_t - update_vals_for_misclassfd_at_t).flatten()
+    # alpha_vec[misclass_mask_at_t, t] = updated_alphas_at_t
+    pass
+
 if __name__ == '__main__':
     y = [1, 2, 4, 6, 7, 8]
     y = [1, 2]
