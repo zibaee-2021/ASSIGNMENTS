@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split, KFold
 from tqdm import tqdm
 import pandas as pd
 import os
+from collections.abc import Iterable
 
 
 def _convert_y_to_vector(y, k_classes):
@@ -22,7 +23,7 @@ def _convert_y_to_vector(y, k_classes):
     return y_vec
 
 
-def _precompute_polykern_matrix(x1, x2, degree):
+def _compute_polykern_matrix(x1, x2, degree):
     """
     Compute the polynomial kernel matrix with two datasets.
     :param x1:
@@ -56,8 +57,6 @@ def _predict_with_trained_alpha(trained_alpha, k_mat, y):
     return mistakes
 
 
-# ---------- QUESTION 1. MEAN & STD DEV OF ERROR RATES  --------------------------------------------------------------
-
 def test_kp(k_mat, trained_alpha, y, degree):
     """
     Perform predictions on test dataset split and calculate numbers of misclassifications using given kernel matrix
@@ -71,11 +70,13 @@ def test_kp(k_mat, trained_alpha, y, degree):
     # assert k_mat.shape[0] == trained_alpha.shape[1]
 
     # USE TRAINED WEIGHTS `trained_alpha` TO MAKE PREDICTIONS AND COUNT MISTAKES:
-    k_mat = k_mat.T  # non-symmetric kernel matrix needs right orientation for dot product with trained_alpha
+    k_mat = k_mat.T  # non-symmetric kernel matrix needs correct orientation for dot product with trained_alpha
+    if k_mat.shape[0] == 240:
+        pass
     mistakes = _predict_with_trained_alpha(trained_alpha, k_mat, y)
     print(f'Number of test mistakes for degree {degree} = {mistakes}')
-
-    error_rate_prct = 100 * (mistakes / len(ds))
+    error_rate_prct = mistakes / len(ds)
+    error_rate_prct *= 100
     print(f'Test error for degree {degree} = {error_rate_prct} %')
     return error_rate_prct
 
@@ -118,6 +119,8 @@ def train_kp(y, k_mat, degree: int, k_classes: int):
         y_vec_with_which_to_update_alpha = learning_rate * y_vec[misclass_mask_at_t, t].reshape(-1)
         alpha_vec[misclass_mask_at_t, t] = y_vec_with_which_to_update_alpha
 
+    if k_mat.shape[0] == 240:
+        a = 400
     # AFTER ALL EPOCHS, USE TRAINED WEIGHTS `alpha_vec` TO MAKE PREDICTIONS AND COUNT MISTAKES:
     mistakes = _predict_with_trained_alpha(alpha_vec, k_mat, y)
     print(f'Number of training mistakes {mistakes}')
@@ -127,104 +130,155 @@ def train_kp(y, k_mat, degree: int, k_classes: int):
     return error_rate_prct, alpha_vec
 
 
-def run_kp(zipcombo, degree, epochs, k_classes=10, num_of_runs=20, write_results=False):
+def _calc_mean_error_per_deg_by_5f_cv(mean_val_error_per_degree, _80split, epochs, degree, k_classes):
+    # GET DATA POINTS AND LABELS FROM TRAINING SET SPLIT:
+    x_train_80 = _80split[:, 1:]
+    y_train_80 = _80split[:, 0]
+
+    # CALC INDICES FOR 5-FOLDS:
+    k_folds = 5
+    folds = np.arange(0, _80split.shape[0], _80split.shape[0] // k_folds)
+    folds[-1] = ds.shape[0] - 1
+    start_end_k_folds = list(zip(folds[:-1], folds[1:]))
+
+    error_prct_kfolds = np.zeros(k_folds)
+    # MAKE 5-FOLD CV DATASETS:
+    for i, (k_start, k_end) in enumerate(start_end_k_folds):
+        x_train_cv = np.concatenate((x_train_80[:k_start], x_train_80[k_end:]), axis=0)
+        y_train_cv = np.concatenate((y_train_80[:k_start], y_train_80[k_end:]))
+        x_val_cv = x_train_80[k_start: k_end]
+        y_val_cv = y_train_80[k_start: k_end]
+
+        # PRECOMPUTE KERNEL MATRIX:
+        kernel_matrix_train_cv = _compute_polykern_matrix(x1=x_train_cv, x2=x_train_cv, degree=degree)
+
+        # MODEL ADDITIONAL EPOCHS BY EXTENDING THE DATA BY MULTIPLICATION:
+        y = np.tile(A=y_train_cv, reps=epochs)
+        k_mat = np.tile(A=kernel_matrix_train_cv, reps=(epochs, epochs))
+
+        if k_mat.shape[0] == 240:
+            a = 100
+        # TRAIN WEIGHTS (not interested in error rate from training fold):
+        _, trained_alpha = train_kp(y=y, k_mat=k_mat, degree=degree, k_classes=k_classes)
+
+        # USE TRAINED WEIGHTS TO RUN *VALIDATION* TESTS. RECORD ERROR FOR THIS DEGREE:
+        # PRECOMPUTE KERNEL MATRIX:
+        kernel_matrix_val = _compute_polykern_matrix(x1=x_train_cv, x2=x_val_cv, degree=degree)
+
+        # MODEL ADDITIONAL EPOCHS BY EXTENDING THE DATA BY MULTIPLICATION:
+        kernel_matrix_val = kernel_matrix_val.T
+        k_mat = np.tile(A=kernel_matrix_val, reps=epochs)
+
+        if k_mat.shape[1] == 240:
+            a = 200
+
+        # VALIDATION TEST WITH TRAINED WEIGHTS & CALC ERRORS FOR THIS DEGREE:
+        error_prct_kfolds[i] = test_kp(k_mat=k_mat, trained_alpha=trained_alpha, y=y_val_cv, degree=degree)
+    # AFTER ALL 5 FOLDS, CALC MEANS OF VALIDATION TESTS FOR THIS DEGREE:
+    # RECORD MEAN VALIDATION ERROR PER DEGREE
+    mean_val_error_per_degree[degree] = np.mean(error_prct_kfolds)
+
+    return mean_val_error_per_degree
+
+
+# ---------- QUESTION 2. Cross validation to find best d ------------------------------------------------------------
+
+
+def run_cv_kp(ds, degrees, num_of_runs=20, k_classes=10, epochs=3, write_results=False):
     """
     Train weights (`alpha`) on 80% dataset splits for given number of epochs. Run test with trained weights on
     corresponding 20% dataset split. Compute error rates +/- std dev for each split for both training and test split
     averaged over given number of independent runs.
-    :param zipcombo: Full dataset.
-    :param degree: Degree for polynomial kernel evaluation. (Expected to be 1,2,3,4,5,6,7).
-    :param epochs: Number of epochs to train the weights over. 3 by default.
-    :param k_classes: Number of classes to perform classification over. 10 by default.
+    :param ds: Dataset.
+    :param degrees: Degrees to try with polynomial kernel evaluation. (Expected to be within range 1 and 7)
     :param num_of_runs: Number of independent runs. 20 by default.
+    :param k_classes: Number of classes to perform classification over. 10 by default.
+    :param epochs: Number of epochs to train the weights over. 3 by default.
     :param write_results: True to write mean errors and std devs to file. False by default.
     """
-    error_rates_train = np.zeros(num_of_runs)
-    error_rates_test = np.zeros(num_of_runs)
+    _20_d_stars = np.zeros(num_of_runs)
+    _20_test_error_rates = np.zeros(num_of_runs)
 
     for i in tqdm(range(num_of_runs)):
 
-        # ---------------------------------------- Q1. T R A I N -----------------------------------------------------
+        # ------- T R A I N: CROSS VALIDATION TO GET D-STAR ----------------------------------------------------------
 
         # MAKE TRAINING & TEST DATASET SPLITS:
-        zipcombo_80split, zipcombo_20split = train_test_split(zipcombo, test_size=0.2, random_state=i)
+        _80split, _20split = train_test_split(ds, test_size=0.2, random_state=i)
+
+        mean_val_error_per_d = dict()
+
+        # USE 5-FOLD CROSS VALIDATION TO FIND BEST DEGREE `d_star`:---------------------------------------------------
+        for degree in degrees:
+            mean_val_error_per_d = _calc_mean_error_per_deg_by_5f_cv(mean_val_error_per_d, _80split, epochs, degree,
+                                                                     k_classes)
+            print(f'For degree {degree} the mean_kfold_val_error = {mean_val_error_per_d[degree]}')
+
+        # DEGREE WITH LOWEST MEAN VALIDATION ERROR:
+        d_star = min(mean_val_error_per_d, key=lambda k: mean_val_error_per_d[k])
+        _20_d_stars[i] = d_star
+
+        # RE-TRAIN WEIGHTS BUT WITH WHOLE 80% TRAIN SET AND USING `d_star` -----------------------------------------
 
         # GET DATA POINTS AND LABELS FROM TRAINING SET SPLIT:
-        x_train_80 = zipcombo_80split[:, 1:]
-        y_train_80 = zipcombo_80split[:, 0]
+        x_train_80 = _80split[:, 1:]
+        y_train_80 = _80split[:, 0]
 
-        # PRECOMPUTE KERNEL MATRIX:
-        kernel_matrix_train_80 = _precompute_polykern_matrix(x1=x_train_80, x2=x_train_80, degree=degree)
+        # PRE-COMPUTE KERNEL MATRIX:
+        kernel_matrix_train_80 = _compute_polykern_matrix(x1=x_train_80, x2=x_train_80, degree=d_star)
 
         # MODEL ADDITIONAL EPOCHS BY EXTENDING THE DATA BY MULTIPLICATION:
         y = np.tile(A=y_train_80, reps=epochs)
         k_mat = np.tile(A=kernel_matrix_train_80, reps=(epochs, epochs))
 
-        # TRAIN WEIGHTS & CALC ERRORS:
-        error_rate_prct_train, trained_alpha = train_kp(y=y, k_mat=k_mat, degree=degree, k_classes=k_classes)
-        error_rates_train[i] = error_rate_prct_train
+        # TRAIN WEIGHTS (not interested in this error):
+        _, trained_alpha = train_kp(y=y, k_mat=k_mat, degree=d_star, k_classes=k_classes)
 
-        # (OPTIONAL) WRITE EACH RESULT OUT TO FILE:
-        if write_results:
-            dir = f'../saved_values/d{degree}'
-            if not os.path.exists(dir):
-                os.makedirs(dir)
-            with open(f'../saved_values/d{degree}/error_rate_prct_train_run#{i + 1}.txt', 'w') as f:
-                f.write(str(error_rate_prct_train))
-            np.savetxt(f'../saved_values/d{degree}/alpha_vec#{i+1}.csv', trained_alpha)
-
-        # ----------------------------------------- Q1. T E S T ------------------------------------------------------
+        # TRAIN WEIGHTS BUT WITH WHOLE 80% TRAIN SET AND USING `d_star` -----------------------------------------
 
         # GET DATA POINTS AND LABELS FROM TEST SET SPLIT:
-        x_test_20 = zipcombo_20split[:, 1:]
-        y_test_20 = zipcombo_20split[:, 0]
+        x_test_20 = _20split[:, 1:]
+        y_test_20 = _20split[:, 0]
 
         # PRECOMPUTE KERNEL MATRIX:
-        kernel_matrix_train_80_test_20 = _precompute_polykern_matrix(x1=x_train_80, x2=x_test_20, degree=degree)
+        kernel_matrix_train_80_test_20 = _compute_polykern_matrix(x1=x_train_80, x2=x_test_20, degree=d_star)
 
         # MODEL ADDITIONAL EPOCHS BY EXTENDING THE DATA BY MULTIPLICATION:
         kernel_matrix_train_80_test_20 = kernel_matrix_train_80_test_20.T
         k_mat = np.tile(A=kernel_matrix_train_80_test_20, reps=epochs)
 
         # TEST WITH TRAINED WEIGHTS & CALC ERRORS:
-        error_rate_prct_test = test_kp(k_mat=k_mat, trained_alpha=trained_alpha, y=y_test_20)
-        error_rates_test[i] = error_rate_prct_test
+        test_error_prct = test_kp(k_mat=k_mat, trained_alpha=trained_alpha, y=y_test_20, degree=d_star)
+        _20_test_error_rates[i] = test_error_prct
+        print(f'd_star {d_star} has test error {test_error_prct}')
 
-        # (OPTIONAL) WRITE EACH RESULT OUT TO FILE:
-        if write_results:
-            with open(f'../saved_values/d{degree}/error_rate_prct_test_run#{i + 1}.txt', 'w') as f:
-                f.write(str(error_rate_prct_train))
-
-    # ---------- Q1. MEAN ERRORS & STD DEVS ---------------------------------------------------------------------------
-
-    # AFTER ALL 20 RUNS, CALC MEANS & STD DEVS:
-    mean_train_error = np.mean(error_rates_train)
-    stdev_train_error = np.std(error_rates_train)
-    mean_test_error = np.mean(error_rates_test)
-    stdev_test_error = np.std(error_rates_test)
-
-    # PRINT MEANS:
-    print(f'mean train error={mean_train_error}, stdev train error={stdev_train_error}\n')
-    print(f'mean test error={mean_test_error}\nstdev test error={stdev_test_error}\n')
+    # CALC MEANS ACROSS 20 RUNS
+    mean_d_star = np.mean(_20_d_stars)
+    stddev_d_star = np.std(_20_d_stars)
+    mean_test_errors = np.mean(_20_test_error_rates)
+    stddev_test_erros = np.std(_20_test_error_rates)
 
     # (OPTIONAL) WRITE MEANS TO FILE:
     if write_results:
-        with open(f'../saved_values/d{degree}/mean_stddev_train_error.txt', 'w') as f1:
-            f1.write(f'degree {degree}, mean train error={mean_train_error}\nstdev train error={stdev_train_error}\n')
-        with open(f'../saved_values/d{degree}/mean_stddev_test_error.txt', 'w') as f2:
-            f2.write(f'degree {degree}, mean test error={mean_test_error}\nstdev test error={stdev_test_error}\n')
+        dir = f'../saved_values'
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        with open(f'../saved_values/means.txt', 'w') as f:
+            f.write(f'mean_d_star={mean_d_star}\n')
+            f.write(f'stddev_d_star={stddev_d_star}\n')
+            f.write(f'mean_test_errors={mean_test_errors}\n')
+            f.write(f'stddev_test_erros={stddev_test_erros}\n')
 
 
 if __name__ == '__main__':
 
     start_time = time.time()
     ds = np.loadtxt('../../datasets/zipcombo.dat')
-    ds = ds[:100, :]
+    # ds = ds[:100, :]
     print(f'ds.shape = {ds.shape}')
 
-    for i in range(7):
-        degree = i + 1
-        print(f'degree: {i + 1}')
-        run_kp(zipcombo=ds, degree=degree, num_of_runs=20, k_classes=10, epochs=3, write_results=True)
+    run_cv_kp(ds=ds, degrees=range(3, 8), num_of_runs=20, k_classes=10, epochs=3, write_results=True)
 
-    print(f'time taken = {round(time.time() - start_time, 4)} seconds')
+    mins = (time.time() - start_time) / 60
+
+    print(f'time taken = {round(mins, 4)} minutes')
