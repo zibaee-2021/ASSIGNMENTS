@@ -2,9 +2,7 @@ import numpy as np
 import time
 from sklearn.model_selection import train_test_split, KFold
 from tqdm import tqdm
-import pandas as pd
 import os
-from collections.abc import Iterable
 
 
 def _convert_y_to_vector(y, k_classes):
