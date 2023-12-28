@@ -7,6 +7,27 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 
+def _visualise_confusion_matrices():
+    """
+
+    :return:
+    """
+    mean_confs = np.loadtxt('../saved_values/mean_confs.txt')
+    stddev_confs = np.loadtxt('../saved_values/stddev_confs.txt')
+    plt.figure(figsize=(10, 8))  # Size it as needed
+    sns.heatmap(mean_confs, annot=True, fmt=".2f", cmap='Greys')  # or cmap='coolwarm', 'Blues', etc.
+    plt.title('mean confusions')
+    plt.ylabel('true y')
+    plt.xlabel('predicted y')
+    plt.show()
+
+    sns.heatmap(stddev_confs, annot=True, fmt=".2f", cmap='Greys')  # or cmap='coolwarm', 'Blues', etc.
+    plt.title('std dev of confusions')
+    plt.ylabel('true y')
+    plt.xlabel('predicted y')
+    plt.show()
+
+
 def _convert_y_to_vector(y, k_classes):
     """
     Convert digit values of y into +1 or -1 for all k classes. (Similar to one-hot encoding).
@@ -307,26 +328,20 @@ def run_cv_kp(ds, degrees, num_of_runs=20, k_classes=10, epochs=3, write_results
 
 if __name__ == '__main__':
 
-    mean_confs = np.loadtxt('../saved_values/mean_confs.txt')
-    stddev_confs = np.loadtxt('../saved_values/stddev_confs.txt')
-    # confusion_matrix = np.random.randint(0, 100, size=(10, 10))
-    # Create a heatmap using Seaborn to visualize the confusion matrix
-    plt.figure(figsize=(10, 8))  # Size it as needed
-    sns.heatmap(mean_confs, annot=True, fmt=".2f", cmap='Greys')  # or cmap='coolwarm', 'Blues', etc.
-    # sns.heatmap(stddev_confs, annot=True, fmt=".2f", cmap='Greys')  # or cmap='coolwarm', 'Blues', etc.
-    plt.title('mean confusions')
-    # plt.title('std dev of confusions')
-    plt.ylabel('true y')
-    plt.xlabel('predicted y')
-    plt.show()
+    # _visualise_confusion_matrices()
 
-    # start_time = time.time()
-    # ds = np.loadtxt('../../datasets/zipcombo.dat')
-    # # ds = ds[:100, :]
-    # print(f'ds.shape = {ds.shape}')
-    #
+    # mean_confs = np.loadtxt('../saved_values/mean_confs.txt')
+    # mean_confs_sums = np.sum(mean_confs, axis=1)
+    # pass
+
+    start_time = time.time()
+    ds = np.loadtxt('../../datasets/zipcombo.dat')
+    # ds = ds[:100, :]
+    print(f'ds.shape = {ds.shape}')
+
     # run_cv_kp(ds=ds, degrees=range(3, 8), num_of_runs=20, k_classes=10, epochs=3, write_results=True)
-    #
-    # mins = (time.time() - start_time) / 60
-    #
-    # print(f'time taken = {round(mins, 4)} minutes')
+    run_cv_kp(ds=ds, degrees=range(4, 6), num_of_runs=20, k_classes=10, epochs=3, write_results=True)
+
+    mins = (time.time() - start_time) / 60
+
+    print(f'time taken = {round(mins, 4)} minutes')
