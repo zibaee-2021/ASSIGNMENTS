@@ -41,7 +41,7 @@ $6$&0.09$\pm$0.04&0.60$\pm$0.06\\
 $7$&0.07$\pm$0.03&0.62$\pm$0.07\\
 \hline
 \end{tabular}\par 
-Table 1.
+Table 1. Mean train and test error rates (\%) across 20 runs
 
 \item[(2)] 
 A “best” parameter $d^*$ is determined 20 times by 5-fold cross-validation of the $80\%$ training data split. \\
@@ -87,20 +87,21 @@ Figure 3. 19 incorrectly predicted images from the full dataset of 9298 digits.
 \clearpage
 \section*{3 Kernel perceptron contin.}
 \begin{enumerate}
+
 \item[(4)] contin.\\
 Some of these misclassifications are more surprising than others. \\
 The high prevalence of 4s, numbering at 10 of the 19, is not surprising given how varied their appearances are in this set.\\
 The 7s and 9s are confused twice, which is not so surprising.\\
 A 6 and 8 confused is not all that surprising.\\
-There are several examples where the number other than 1 looks like a 1, and so it is not surprising when these are 'wrongly' predicted as 1s.\\
+There are several examples where a number other than 1 looks like a 1, and so it is not surprising when these are `wrongly' predicted as 1s.\\
 The 8 in the 4th row, 4th column is predicted to be a 1 though it looks more like either a 9, 4 or an 8.\\ 
 Predictions for row 2, column 1 and row 2, column 3 are more surprising being predicted as a 1 and 2.\\
 Regardless, it seems remarkable that only 19 of 9298 were misclassified given such a simple algorithm - there are no convolutional neural networks here, just a `kernel trick' and a basic perceptron.\\
 
 Table 3 below indicates the percentage rate of misclassification per digit. \\
-'total' is the sum of occurences of each digit in the full dataset. \\
-'misclassified' is the sum of misclassified occurences (these are the 19 misclassified digits shown in Figure 3 above):\\
-'rate (\%)' is the misclassified divided by the total, multiplied by 100. 
+`total' is the sum of occurences of each digit in the full dataset. \\
+`misclassified' is the sum of misclassified occurences (these are the 19 misclassified digits shown in Figure 3 above):\\
+`rate (\%)' is the misclassified divided by the total, multiplied by 100. 
 
 \begin{tabular}{|c|c|c|c|}
 \hline
@@ -137,8 +138,6 @@ Table 3. Rates of misclassifications with full dataset $(\%)$
 
 Repeating 1 and 2 with a Gaussian kernel  ($d^*$ is now $c$ and {1,...,7} is now $S$):\\
 From 20 runs for $c = 1, ... , 7$. \\
-
-Basic results: \\
 Each run uses a randomly split `zipcombo` into $80\%$ train and $20\%$ test. \\
 The mean train and test error rates and standard deviations are shown in Table 2 below:
 
