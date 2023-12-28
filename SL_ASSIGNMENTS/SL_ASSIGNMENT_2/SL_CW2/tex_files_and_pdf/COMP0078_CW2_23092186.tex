@@ -51,29 +51,90 @@ Of the same 20 for which tests were run (on the 20\% dataset), the mean and stan
 
 \end{enumerate}
 \clearpage
-
-
 \section*{3 Kernel perceptron contin.}
 \begin{enumerate}
 
 \item[(3)]
-The same operations as question 2 were repeated, replacing mistake counts with confusion matrices has been generated. \\
-The values in this matrix are calculated by counting the number of instances whereby a particular digit (according to the true label $y$) was misclassified as another digit (the predicted label $y$), such that every combination of misclassifications is added up and divided by the total count of that particular digit, giving the mean values (Figure 1). \\
+The same operations as question 2 were repeated, replacing mistake counts with confusion matrices. The values in this matrix are calculated by counting the number of instances whereby a particular digit ('true $y$') was misclassified ('predicted $y$'), such that every combination of misclassifications is added up and divided by the total count of that particular digit, giving the mean values (Figure 1). \\
 \includegraphics[scale=0.4]{images_for_tex_doc/mean_confs.png}\\
 Figure 1. Mean confusions \\
 \includegraphics[scale=0.4]{images_for_tex_doc/stdev_confs.png}\\
 Figure 2. Standard deviations of confusions\\
-
+\end{enumerate}
+\clearpage
+\section*{3 Kernel perceptron contin.}
+\begin{enumerate}
 \item[(4)]
-The visualisation of the five hardest-to-predict digits along with their labels is shown in Figure 2 below: \\
-Figure 3.\\
-Yes/no, it is (not) surprising that these five are hard to predict, because.... 
+The sum of confusion error rates for each digit, according to the 20\% test set (and 3 epochs) is shown in Table 2 below:
+
+\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|}
+\hline
+0&1&2&3&4&5&6&7&8&9\\
+\hline
+0.99&0.69&3.16&4.88&4.22&5.30&2.28&2.79&5.68&3.64\\
+\hline
+\end{tabular}\par 
+Table 2.
+Hence the five hardest-to-predict numbers according to the confusion matrix are: 8, 5, 3, 4, 9 (in order from the hardest).
+
+However, the wording of the question seems to suggest that it is individual images (rather than one of the 10 classes), and potentially from within the full unsplit dataset, that the five hardest-to-predict should be identified. It is not completely clear how to find the five hardest by this definition. The approach taken was as follows:\\
+The weights were trained on the full data set, 3 epochs were used as before, with degree 5 (rounded down from the mean $d^*$ calculated in question 2. ($d=5.55$ was tried but unsurprisingly - in hindsight - it caused numerical instability issues). Predictions were then made, again on the full dataset, using the trained weights. \\
+19 digits were misclassified out the 9298 digits that are in the full dataset, shown in Figure 3 below:
+
+\includegraphics[scale=0.25]{images_for_tex_doc/19_misclassed.png}\\
+Figure 3. 19 incorrectly predicted images from the full dataset of 9298 digits.
+\end{enumerate}
+\clearpage
+\section*{3 Kernel perceptron contin.}
+\begin{enumerate}
+\item[(4)] contin.\\
+Some of these misclassifications are more surprising than others. \\
+The high prevalence of 4s, numbering at 10 of the 19, is not surprising given how varied their appearances are in this set.\\
+The 7s and 9s are confused twice, which is not so surprising.\\
+A 6 and 8 confused is not all that surprising.\\
+There are several examples where the number other than 1 looks like a 1, and so it is not surprising when these are 'wrongly' predicted as 1s.\\
+The 8 in the 4th row, 4th column is predicted to be a 1 though it looks more like either a 9, 4 or an 8.\\ 
+Predictions for row 2, column 1 and row 2, column 3 are more surprising being predicted as a 1 and 2.\\
+Regardless, it seems remarkable that only 19 of 9298 were misclassified given such a simple algorithm - there are no convolutional neural networks here, just a `kernel trick' and a basic perceptron.\\
+
+Table 3 below indicates the percentage rate of misclassification per digit. \\
+'total' is the sum of occurences of each digit in the full dataset. \\
+'misclassified' is the sum of misclassified occurences (these are the 19 misclassified digits shown in Figure 3 above):\\
+'rate (\%)' is the misclassified divided by the total, multiplied by 100. 
+
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{digit}&$\textbf{total}$&$\textbf{misclassified}$&\textbf{rate} (\%)\\
+\hline
+0&1553&1&0.06\\
+\hline
+1&1269&0&0\\
+\hline
+2&929&1&0.11\\
+\hline
+3&824&1&0.12\\
+\hline
+4&852&10&1.17\\
+\hline
+5&716&0&0\\
+\hline
+6&834&0&0\\
+\hline
+7&792&2&0.25\\
+\hline
+8&708&3&0.42\\
+\hline
+9&821&1&0.12\\
+\hline
+\end{tabular}\par 
+Table 3. Rates of misclassifications with full dataset $(\%)$
 
 \end{enumerate}
 \clearpage
 \section*{3 Kernel perceptron contin.}
 \begin{enumerate}
-\item[(5)] 
+\item[(5)] TODO ... \\
+
 Repeating 1 and 2 with a Gaussian kernel  ($d^*$ is now $c$ and {1,...,7} is now $S$):\\
 From 20 runs for $c = 1, ... , 7$. \\
 
@@ -100,7 +161,7 @@ $6$&00.00$\pm$0.0&00.00$\pm$0.0\\
 $7$&00.00$\pm$0.0&00.00$\pm$0.0\\
 \hline
 \end{tabular}\par 
-Table 2. Error rates $(\%)$
+Table X
 
 Cross-validation: \\
 A “best” parameter $c^*$ is determined by 5-fold cross-validation of the $80\%$ training data split. \\
@@ -114,7 +175,8 @@ The mean test error and mean $c^*$ is 00.00 $\pm$ 0.0 and 0.0 respectively.
 \clearpage
 \section*{3 Kernel perceptron contin.}
 \begin{enumerate}
-\item[(6)] 
+\item[(6)] TODO ...\\
+
 An alternate method to generalise the kernel perceptron to $k$-classes might be to use ...: \\
 
 Basic results: \\
@@ -153,7 +215,7 @@ The mean test error and mean $c^*$ is 00.00 $\pm$ 0.0 and 0.0 respectively.
 \clearpage
 \section*{3 Kernel perceptron contin.}
 \begin{enumerate}
-\item[(6)]
+\item[(6)] TODO ...\\
 $\textbf{A.}$\\
 A discussion of any parameters of your method which were not cross-validated over.
 
