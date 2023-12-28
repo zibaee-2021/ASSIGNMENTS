@@ -57,21 +57,16 @@ Of the same 20 for which tests were run (on the 20\% dataset), the mean and stan
 \begin{enumerate}
 
 \item[(3)]
-Confusion matrix: \\
-Re-using the stuff in number 2 above... $d^*$ ... and then produce a confusion matrix. \\
-Here the goal is to find “confusions” (which are incorrect predictions). \\
-A 10 × 10 matrix where each cell contains a confusion error rate and its standard deviation (here you will have averaged over the 20 runs) is shown in Figure 1 below:\\
-(Make this confusion matrix with Seaborn and insert here the screenshot of this.. )\\
-% \includegraphics[scale=0.6]{images/COMP0078_CW2_confusion_matrix.png}\\
-Figure 1. \\
-Note the diagonal will be 0. In computing the error rate for a cell use:
-
-(Number of times digit a was mistaken for digit $b$ (test set)) / (Number of digit a points (test set))
+The same operations as question 2 were repeated, replacing mistake counts with confusion matrices has been generated. \\
+The values in this matrix are calculated by counting the number of instances whereby a particular digit (according to the true label $y$) was misclassified as another digit (the predicted label $y$), such that every combination of misclassifications is added up and divided by the total count of that particular digit, giving the mean values (Figure 1). \\
+\includegraphics[scale=0.4]{images_for_tex_doc/mean_confs.png}\\
+Figure 1. Mean confusions \\
+\includegraphics[scale=0.4]{images_for_tex_doc/stdev_confs.png}\\
+Figure 2. Standard deviations of confusions\\
 
 \item[(4)]
 The visualisation of the five hardest-to-predict digits along with their labels is shown in Figure 2 below: \\
-% \includegraphics[scale=0.6]{images/COMP0078_CW2_five_hardest_to_predict_digits.png}\\
-Figure 2.\\
+Figure 3.\\
 Yes/no, it is (not) surprising that these five are hard to predict, because.... 
 
 \end{enumerate}

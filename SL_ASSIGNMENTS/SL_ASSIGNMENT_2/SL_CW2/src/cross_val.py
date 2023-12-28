@@ -69,8 +69,6 @@ def test_kp(k_mat, trained_alpha, y, degree):
 
     # USE TRAINED WEIGHTS `trained_alpha` TO MAKE PREDICTIONS AND COUNT MISTAKES:
     k_mat = k_mat.T  # non-symmetric kernel matrix needs correct orientation for dot product with trained_alpha
-    if k_mat.shape[0] == 240:
-        pass
     mistakes = _predict_with_trained_alpha(trained_alpha, k_mat, y)
     print(f'Number of test mistakes for degree {degree} = {mistakes}')
     error_rate_prct = mistakes / len(ds)
@@ -117,8 +115,6 @@ def train_kp(y, k_mat, degree: int, k_classes: int):
         y_vec_with_which_to_update_alpha = learning_rate * y_vec[misclass_mask_at_t, t].reshape(-1)
         alpha_vec[misclass_mask_at_t, t] = y_vec_with_which_to_update_alpha
 
-    if k_mat.shape[0] == 240:
-        a = 400
     # AFTER ALL EPOCHS, USE TRAINED WEIGHTS `alpha_vec` TO MAKE PREDICTIONS AND COUNT MISTAKES:
     mistakes = _predict_with_trained_alpha(alpha_vec, k_mat, y)
     print(f'Number of training mistakes {mistakes}')
@@ -154,8 +150,6 @@ def _calc_mean_error_per_deg_by_5f_cv(mean_val_error_per_degree, _80split, epoch
         y = np.tile(A=y_train_cv, reps=epochs)
         k_mat = np.tile(A=kernel_matrix_train_cv, reps=(epochs, epochs))
 
-        if k_mat.shape[0] == 240:
-            a = 100
         # TRAIN WEIGHTS (not interested in error rate from training fold):
         _, trained_alpha = train_kp(y=y, k_mat=k_mat, degree=degree, k_classes=k_classes)
 
@@ -166,9 +160,6 @@ def _calc_mean_error_per_deg_by_5f_cv(mean_val_error_per_degree, _80split, epoch
         # MODEL ADDITIONAL EPOCHS BY EXTENDING THE DATA BY MULTIPLICATION:
         kernel_matrix_val = kernel_matrix_val.T
         k_mat = np.tile(A=kernel_matrix_val, reps=epochs)
-
-        if k_mat.shape[1] == 240:
-            a = 200
 
         # VALIDATION TEST WITH TRAINED WEIGHTS & CALC ERRORS FOR THIS DEGREE:
         error_prct_kfolds[i] = test_kp(k_mat=k_mat, trained_alpha=trained_alpha, y=y_val_cv, degree=degree)
@@ -232,7 +223,7 @@ def run_cv_kp(ds, degrees, num_of_runs=20, k_classes=10, epochs=3, write_results
         # TRAIN WEIGHTS (not interested in this error):
         _, trained_alpha = train_kp(y=y, k_mat=k_mat, degree=d_star, k_classes=k_classes)
 
-        # TRAIN WEIGHTS BUT WITH WHOLE 80% TRAIN SET AND USING `d_star` -----------------------------------------
+        # TEST ON 20% DATASET WITH TRAINED WEIGHTS FROM 80% DATASET AND USING `d_star` ------------------------------
 
         # GET DATA POINTS AND LABELS FROM TEST SET SPLIT:
         x_test_20 = _20split[:, 1:]
