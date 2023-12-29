@@ -1,5 +1,6 @@
 import numpy as np
 from numba import jit
+from scipy.spatial.distance import cdist
 
 
 def convert_y_to_vector(y, k_classes):
@@ -29,6 +30,19 @@ def compute_polykern_matrix(x1, x2, degree):
     ker_mat = np.dot(x1, x2.T)
     poly_ker_mat = ker_mat ** degree
     return poly_ker_mat
+
+
+def compute_gauss_kern_matrix(x1, x2, c):
+    """
+    Compute the Gaussian kernel matrix with two datasets given each as 2d arrays.
+    :param x1: One 2d array.
+    :param x2: The other 2d array.
+    :param c: Width parameter to use for the Gaussian kernel equation. (Equivalent to 1/sigma^2).
+    :return: The Gaussian kernel matrix.
+    """
+    sqrd_euclid_norm = cdist(x1, x2, 'sqeuclidean')
+    Gauss_ker_mat = np.exp(-c * sqrd_euclid_norm)
+    return Gauss_ker_mat
 
 
 def predict_with_trained_alpha(trained_alpha, k_mat, y):
