@@ -102,7 +102,7 @@ if __name__ == '__main__':
     start_time = time.time()
     # Basic results
     # degrees to use are 1, 2, 3, 4, 5, 6, 7.
-    train_and_test_kp(zipcombo=np.loadtxt('../../datasets/zipcombo.dat'), degree=1,
+    train_and_test_kp(zipcombo=np.loadtxt('../datasets/zipcombo.dat'), degree=1,
                       num_of_runs=2, k_classes=10)
 
     # train_and_test_kernel_perceptron(zipcombo=np.loadtxt('../../datasets/dtrain123.dat'), degree=1,

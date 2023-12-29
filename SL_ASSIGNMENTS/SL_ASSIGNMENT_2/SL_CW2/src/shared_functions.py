@@ -1,109 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from numba import jit
-import pandas as pd
-
-
-def plot_mnist_digit(x):
-    """
-    Based on `plotChar[char_]` in poorCodeDemoDig.nb
-    Plot the given 256 grayscale values to 16 x 16 image.
-    :param x: NumPy array for one MNIST digit, containing 257 numbers.
-    The first number is the MNIST digit (i.e. the label), the remaining 256 numbers are the flattened 16×16 greyscale
-    pixels values corresponding to the digit.
-    """
-    assert len(x) == 257, 'Length of given array should be 257'
-    data = np.array(x[1:257]).reshape((16, 16))
-    plt.imshow(data, cmap='gray')
-    plt.title(f"The number {x[0]}")
-    plt.show()
-
-
-def precompute_polykern_matrix(x1, x2, degree):
-    ker_mat = x1 @ x2.T
-    poly_ker_mat = ker_mat ** degree
-    return poly_ker_mat
-
-
-def _compute_polynomial_kernel(x1, x2, degree=3) -> float:
-    """
-    Based on `kerval[a_, b_]` in poorCodeDemoDig.nb: "function to compute kernel of a degree 3 polynomial".
-    The computation is for two arrays, so might already be optimally vectorised via NumPy.
-    :param x1: NumPy array of one MNIST digit, containing 256 numbers (i.e. flattened 16×16 greyscale pixels values).
-    :param x2: As `x1`, but for a different MNIST digit.
-    :param degree: Degree to use for the polynomial. (Three by default).
-    """
-    return (np.dot(x1, x2)) ** degree
-
-
-def sign(sum_of_weighted_product) -> float:
-    """
-    Sign function
-    :param sum_of_weighted_product:
-    :return: -1.0 or +1.0
-    """
-    return -1.0 if sum_of_weighted_product <= 0.0 else 1.0
-
-
-def predict_digit(x_upto_t, xt, t, alpha, d) -> float:
-    """
-    From poorCodeDemoDig.nb. "Computes the prediction of a classifier on a particular pattern" by taking the sum of
-    the products of the class coefficients and kernel values, across all classes.
-    :param x_upto_t: 2d array of training or test dataset, from data point t=0 up to previous data point, t-1.
-    :param xt: 2d array of 256 numbers for current data point.
-    :param t: The index of the current of the data point xt.
-    :param alpha: Weight per data point for all classes and data points. 2d array (k_classes, m).
-    :param d: degree for polynomial kernel.
-    :return: Prediction of the class (i.e. digit) according to the given image pixels.
-    """
-    prediction = 0.0
-    alpha_len = len(alpha)
-
-    for i in range(t):
-        xi = x_upto_t[i]
-        poly_kernel_xixt = _compute_polynomial_kernel(x1=xi, x2=xt, degree=d)
-
-        # convert indexing for alpha, because it keeps original length, regardless of num of epochs.
-        if i < alpha_len:  # 7438
-            i_for_alpha = i
-        else:
-            i_for_alpha = i % alpha_len
-
-        prediction += alpha[i_for_alpha] * poly_kernel_xixt
-
-    yt_hat = sign(prediction)
-    return yt_hat
-
-
-def predict_digit_vec(alpha_vec, kern_mat, k, m):
-    """
-    Compute summed product of alpha and precomputed kernel matrix for all values preceding, according to equation
-    given in question sheet.
-    :param alpha_vec: Weights per data point for every k class. Expected shape (k_classes, m).
-    :param kern_mat: Precomputed kernel matrix. Expected shape (m, m).
-    :param k: Number of classes to classify. Expected to be 10 for zipcombo.
-    :param m: Number of data points. Expected to be 9298 * epochs for zipcombo.
-    :return: summed weighted products of data points. Expected shape (k_classes, m).
-    """
-    assert alpha_vec.shape[0] == k
-    assert alpha_vec.shape[1] == m
-    assert kern_mat.shape[0] == m
-    assert kern_mat.shape[1] == m
-    preds = np.zeros((m, k))
-    for t in range(1, m):
-        a_slice = alpha_vec[:, :t]
-        k_slice = kern_mat[:t, t].reshape(-1, 1)
-        pred = np.dot(a_slice, k_slice)
-        preds[t] = pred.T
-    return preds.T
-
-
-def multiply_by_epochs(epochs, y_vec, ds, alpha, k_mat):
-    y_vec_ep = np.tile(A=y_vec, reps=epochs)
-    ds_ep = np.tile(A=ds.T, reps=epochs)
-    alpha_ep = np.tile(A=alpha, reps=epochs)
-    k_mat_ep = np.tile(A=k_mat, reps=(epochs, epochs))
-    return y_vec_ep, ds_ep.T, alpha_ep, k_mat_ep
 
 
 def convert_y_to_vector(y, k_classes):
@@ -122,24 +18,147 @@ def convert_y_to_vector(y, k_classes):
     return y_vec
 
 
-def unused_code():
-    # # These updates equation below (i.e. `alpha = alpha - sign(preds)`) was more effective at
-    # # mis-classifying than classifying. DO NOT USE!
-    # # Predictions for this data point
-    # preds_at_t = preds[:, t]
-    # # Convert raw values to -1 or 1
-    # preds_signs_at_t = np.ones((k_classes, 1))
-    # preds_signs_at_t[preds_at_t <= 0.0] = -1.0
-    # current_alphas_for_misclassfd_at_t = alpha_vec[misclass_mask_at_t, t].reshape(-1, 1)
-    # update_vals_for_misclassfd_at_t = preds_signs_at_t[misclass_mask_at_t].reshape(-1, 1)
-    # updated_alphas_at_t = (current_alphas_for_misclassfd_at_t - update_vals_for_misclassfd_at_t).flatten()
-    # alpha_vec[misclass_mask_at_t, t] = updated_alphas_at_t
-    pass
+def compute_polykern_matrix(x1, x2, degree):
+    """
+    Compute the polynomial kernel matrix with two datasets given each as 2d arrays.
+    :param x1: One 2d array.
+    :param x2: The other 2d array.
+    :param degree: Degree to use for polynomial kernel.
+    :return: The polynomial kernel matrix.
+    """
+    ker_mat = np.dot(x1, x2.T)
+    poly_ker_mat = ker_mat ** degree
+    return poly_ker_mat
 
-if __name__ == '__main__':
-    y = [1, 2, 4, 6, 7, 8]
-    y = [1, 2]
-    y = np.array(y)
 
-    y_ = convert_y_to_vector(y, k_classes=10)
-    print(y_)
+def predict_with_trained_alpha(trained_alpha, k_mat, y):
+    """
+    Compute predictions with trained weights and kernel matrix. Count mistakes compared to true labels.
+    :param trained_alpha: Trained weights.
+    :param k_mat: Kernel matrix.
+    :param y: Labels (epoch-tiled). 1d array.
+    :return: Number of mistakes made in prediction.
+    """
+    # FOR EACH EPOCH, USE TRAINED WEIGHTS `alpha_vec` TO MAKE PREDICTIONS AND COUNT MISTAKES:
+    predictions_with_trained_alpha = np.dot(trained_alpha, k_mat)
+    # digit & index happen to be same number for 10 classes with 0-based indexing.
+    predicted_y = np.argmax(predictions_with_trained_alpha, axis=0).reshape(-1, 1)
+    true_y = y.reshape(-1, 1).astype(np.int32)
+    mistakes = predicted_y != true_y
+    mistakes = np.sum(mistakes)
+    return mistakes
+
+
+def test_kp(ds, k_mat, trained_alpha, y, degree):
+    """
+    Perform predictions on test dataset split and calculate numbers of misclassifications using given kernel matrix
+    and pre-trained weights from corresponding training dataset split. (All given values are epoch-tiled).
+    :param k_mat: Pre-computed kernel matrix (epoch-tiled) for corresponding training dataset split and test set split.
+    :param trained_alpha: Trained weights (epoch-tiled), trained on corresponding training dataset split.
+    :param y: Labels (epoch-tiled). 1d array.
+    :param degree: Degree to use for polynomial kernel evaluation.
+    :return: The error rate percentage for given dataset split.
+    """
+    # USE TRAINED WEIGHTS `trained_alpha` TO MAKE PREDICTIONS AND COUNT MISTAKES:
+    k_mat = k_mat.T  # non-symmetric kernel matrix needs correct orientation for dot product with trained_alpha
+    mistakes = predict_with_trained_alpha(trained_alpha, k_mat, y)
+    print(f'Number of test mistakes for degree {degree} = {mistakes}')
+    error_rate_prct = 100 * (mistakes / len(ds))
+    print(f'Test error for degree {degree} = {error_rate_prct} %')
+    return error_rate_prct
+
+
+def train_kp(y, k_mat, degree: int, k_classes: int):
+    """
+    Perform a form of online learning by updating the weight (`alpha`) by updating its value the weighted kernel
+    evaluation whenever its prediction is wrong.
+    :param y: Labels for training dataset split of MNIST. As 1d array with shape (m, 257) where `m` is number of
+    datapoints (epoch-tiled).
+    :param k_mat: Kernel matrix for given training dataset (epoch-tiled).
+    :param degree: Degree to use for polynomial kernel evaluation.
+    :param k_classes: Number of classes for which to perform classification.
+    :return: The error rate percentage and the trained weights for the given dataset, degree, k_classes and epochs.
+    """
+    y_vec = convert_y_to_vector(y, k_classes)
+    m = len(k_mat)
+    alpha_vec = np.zeros((k_classes, m))
+    assert alpha_vec.shape[0] == y_vec.shape[0] == k_classes
+    assert k_mat.shape[0] == k_mat.shape[1] == alpha_vec.shape[1] == y_vec.shape[1]
+
+    preds = np.zeros((k_classes, m))
+
+    # ITERATE THROUGH ALL DATA POINTS:
+    for t in range(m):
+        a_slice = alpha_vec[:, :t]
+        k_slice = k_mat[t, :t].reshape(-1, 1)
+        # MAKE PREDICTIONS FOR THIS DATA POINT ACROSS ALL CLASSES:
+        pred = np.dot(a_slice, k_slice)
+
+        # UPDATE WEIGHTS FOR ANY THAT MISCLASSIFIED THIS DATA POINT (IF PRODUCT OF TRUE Y AND PREDICTED IS <= 0)
+        preds[:, t] = pred.reshape(-1)
+        prod_y_and_preds_at_t = y_vec[:, t] * preds[:, t]
+        # STORE WHICH DIGITS ARE MISCLASSIFIED IN BOOLEAN MASK:
+        misclass_mask_at_t = prod_y_and_preds_at_t <= 0
+        # print(f"Type of y_vec[misclass_mask_at_t, t]: {type(y_vec[misclass_mask_at_t, t])}")
+        # print(f"Shape of y_vec[misclass_mask_at_t, t]: {y_vec[misclass_mask_at_t, t].shape}")
+
+        y_vec_with_which_to_update_alpha = y_vec[misclass_mask_at_t, t].reshape(-1)
+        alpha_vec[misclass_mask_at_t, t] = y_vec_with_which_to_update_alpha
+
+        # ADDING HERE A POSSIBLE LEARNING RATE HYPERPARAMETER:
+        # learning_rate = 0.2
+        # alpha_vec[misclass_mask_at_t, t] += learning_rate * y_vec[misclass_mask_at_t, t].reshape(-1)
+
+    # AFTER ALL EPOCHS, USE TRAINED WEIGHTS `alpha_vec` TO MAKE PREDICTIONS AND COUNT MISTAKES:
+    mistakes = predict_with_trained_alpha(alpha_vec, k_mat, y)
+    print(f'Number of training mistakes {mistakes}')
+
+    error_rate_prct = 100 * (mistakes / m)
+    print(f'Train error for degree {degree} = {error_rate_prct} %')
+    return error_rate_prct, alpha_vec
+
+
+def calc_mean_error_per_deg_by_5f_cv(ds, mean_val_error_per_degree, _80split, epochs, degree, k_classes):
+    # GET DATA POINTS AND LABELS FROM TRAINING SET SPLIT:
+    x_train_80 = _80split[:, 1:]
+    y_train_80 = _80split[:, 0]
+
+    # CALC INDICES FOR 5-FOLDS:
+    k_folds = 5
+    folds = np.arange(0, _80split.shape[0], _80split.shape[0] // k_folds)
+    folds[-1] = ds.shape[0] - 1
+    start_end_k_folds = list(zip(folds[:-1], folds[1:]))
+
+    error_prct_kfolds = np.zeros(k_folds)
+    # MAKE 5-FOLD CV DATASETS:
+    for i, (k_start, k_end) in enumerate(start_end_k_folds):
+        x_train_cv = np.concatenate((x_train_80[:k_start], x_train_80[k_end:]), axis=0)
+        y_train_cv = np.concatenate((y_train_80[:k_start], y_train_80[k_end:]))
+        x_val_cv = x_train_80[k_start: k_end]
+        y_val_cv = y_train_80[k_start: k_end]
+
+        # PRECOMPUTE KERNEL MATRIX:
+        kernel_matrix_train_cv = compute_polykern_matrix(x1=x_train_cv, x2=x_train_cv, degree=degree)
+
+        # MODEL ADDITIONAL EPOCHS BY EXTENDING THE DATA BY MULTIPLICATION:
+        y = np.tile(A=y_train_cv, reps=epochs)
+        k_mat = np.tile(A=kernel_matrix_train_cv, reps=(epochs, epochs))
+
+        # TRAIN WEIGHTS (not interested in error rate from training fold):
+        _, trained_alpha = train_kp(y=y, k_mat=k_mat, degree=degree, k_classes=k_classes)
+
+        # USE TRAINED WEIGHTS TO RUN *VALIDATION* TESTS. RECORD ERROR FOR THIS DEGREE:
+        # PRECOMPUTE KERNEL MATRIX:
+        kernel_matrix_val = compute_polykern_matrix(x1=x_train_cv, x2=x_val_cv, degree=degree)
+
+        # MODEL ADDITIONAL EPOCHS BY EXTENDING THE DATA BY MULTIPLICATION:
+        kernel_matrix_val = kernel_matrix_val.T
+        k_mat = np.tile(A=kernel_matrix_val, reps=epochs)
+
+        # VALIDATION TEST WITH TRAINED WEIGHTS & CALC ERRORS FOR THIS DEGREE:
+        error_prct_kfolds[i] = test_kp(ds=ds, k_mat=k_mat, trained_alpha=trained_alpha, y=y_val_cv, degree=degree)
+    # AFTER ALL 5 FOLDS, CALC MEANS OF VALIDATION TESTS FOR THIS DEGREE:
+    # RECORD MEAN VALIDATION ERROR PER DEGREE
+    mean_val_error_per_degree[degree] = np.mean(error_prct_kfolds)
+
+    return mean_val_error_per_degree
