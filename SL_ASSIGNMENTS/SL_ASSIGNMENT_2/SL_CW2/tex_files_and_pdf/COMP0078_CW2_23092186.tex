@@ -3,10 +3,10 @@
 \usepackage{tma}
 \usepackage{amsmath}
 \usepackage{siunitx}
-\newcommand{\Mod}[1]{\ (\mathrm{mod}\ #1)}
+\newcommand{\Mod}[1]{\ (\mathrm{mod}\ \#1)}
 \usepackage{tikz}
 \newcommand*\circled[1]{\tikz[baseline=(char.base)]{
-            \node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
+            \node[shape=circle,draw,inner sep=2pt] (char) {\#1};}}
 
 \mypin{students: 23092186 12345678}
 \mycourse{COMP0078 - CW2}
@@ -24,7 +24,7 @@ The mean train and test error rate percentages and standard deviations across th
 
 \begin{tabular}{|c|c|c|c|}
 \hline
-$d$&$\textbf{train}$&$\textbf{test}$\\
+$d$&$\textbf{train error (\%)}$&$\textbf{test error (\%)}$\\
 \hline
 $1$&7.58$\pm$0.84&1.84$\pm$0.22\\
 \hline
@@ -44,10 +44,10 @@ $7$&0.07$\pm$0.03&0.62$\pm$0.07\\
 Table 1. Mean train and test error rates (\%) across 20 runs
 
 \item[(2)] 
-A “best” parameter $d^*$ is determined 20 times by 5-fold cross-validation of the $80\%$ training data split. \\
+A``best” parameter $d^*$ is determined 20 times by 5-fold cross-validation of the $80\%$ training data split. \\
 Using this $d^*$, we re-train weights with the full $80\%$ training set and run tests on the remaining 20\% errors. \\
-Of the 20 $d^*$s, the mean and standard deviation was 5.55 $\pm$ 0.67.
-Of the same 20 for which tests were run (on the 20\% dataset), the mean and standard deviation was 0.60 $\pm$ 0.09.
+Of the 20 $d^*$s, the mean and standard deviation  of $d^*$ was 5.55 $\pm$ 0.67.
+Of the same 20 for which tests were run (on the 20\% dataset), the mean and standard deviation test error was 0.60$\pm$0.09\%.
 
 \end{enumerate}
 \clearpage
@@ -55,7 +55,7 @@ Of the same 20 for which tests were run (on the 20\% dataset), the mean and stan
 \begin{enumerate}
 
 \item[(3)]
-The same operations as question 2 were repeated, replacing mistake counts with confusion matrices. The values in this matrix are calculated by counting the number of instances whereby a particular digit ('true $y$') was misclassified ('predicted $y$'), such that every combination of misclassifications is added up and divided by the total count of that particular digit, giving the mean values (Figure 1). \\
+The same operations as question 2 were repeated, replacing mistake counts with confusion matrices. The values in this matrix are calculated by counting the number of instances whereby a particular digit (`true $y$') was mis-classified (`predicted $y$'), such that every combination of mis-classifications is added up and divided by the total count of that particular digit, giving the mean values (Figure 1). \\
 \includegraphics[scale=0.4]{images_for_tex_doc/mean_confs.png}\\
 Figure 1. Mean confusions \\
 \includegraphics[scale=0.4]{images_for_tex_doc/stdev_confs.png}\\
@@ -79,7 +79,7 @@ Hence the five hardest-to-predict numbers according to the confusion matrix are:
 
 However, the wording of the question seems to suggest that it is individual images (rather than one of the 10 classes), and potentially from within the full unsplit dataset, that the five hardest-to-predict should be identified. It is not completely clear how to find the five hardest by this definition. The approach taken was as follows:\\
 The weights were trained on the full data set, 3 epochs were used as before, with degree 5 (rounded down from the mean $d^*$ calculated in question 2. ($d=5.55$ was tried but unsurprisingly - in hindsight - it caused numerical instability issues). Predictions were then made, again on the full dataset, using the trained weights. \\
-19 digits were misclassified out the 9298 digits that are in the full dataset, shown in Figure 3 below:
+19 digits were mis-classified out the 9298 digits that are in the full dataset, shown in Figure 3 below:
 
 \includegraphics[scale=0.25]{images_for_tex_doc/19_misclassed.png}\\
 Figure 3. 19 incorrectly predicted images from the full dataset of 9298 digits.
@@ -89,23 +89,24 @@ Figure 3. 19 incorrectly predicted images from the full dataset of 9298 digits.
 \begin{enumerate}
 
 \item[(4)] contin.\\
-Some of these misclassifications are more surprising than others. \\
+Some of these mis-classifications are more surprising than others. \\
 The high prevalence of 4s, numbering at 10 of the 19, is not surprising given how varied their appearances are in this set.\\
 The 7s and 9s are confused twice, which is not so surprising.\\
 A 6 and 8 confused is not all that surprising.\\
 There are several examples where a number other than 1 looks like a 1, and so it is not surprising when these are `wrongly' predicted as 1s.\\
-The 8 in the 4th row, 4th column is predicted to be a 1 though it looks more like either a 9, 4 or an 8.\\ 
-Predictions for row 2, column 1 and row 2, column 3 are more surprising being predicted as a 1 and 2.\\
-Regardless, it seems remarkable that only 19 of 9298 were misclassified given such a simple algorithm - there are no convolutional neural networks here, just a `kernel trick' and a basic perceptron.\\
+The 8 in the row\#4, column\#4 is predicted to be a 1 though it looks more like either a 9, 4 or an 8.\\ 
+Predictions for row\#2, column\#1 and row\#2, column\#3 are more surprising being predicted as a 1 and 2.\\
+Regardless, it seems remarkable that only 19 of 9298 were mis-classified given such a simple algorithm - there are no convolutional neural networks here, just a `kernel trick' and a basic perceptron.\\
+Perhaps a more scientific treatment of ``surprise" is to note that there are cases where the data is just poor. A model that generalises to classify new examples correctly should $\textbf{not}$ be able to correctly classify a number 8 that a human would not recognise as a number 8 - such as in row\#2, column\#4. This was classified as a 1, and could in fact be considered as a correct classification or a `false' mis-classification. This is repeated for digits in row\#3, column\#1 and row\#4, column\#3, where there are 4s that a human would also identify as a 1. In these cases, it is correct to say that the kernel perceptron has successfully classified the image, despite it disagreeing with the true label. At the same, there are cases where the model can be considered to have failed and suggests therefore that it has room for improvement. If one is restricted to this dataset only, improvement might be achievable by use of more epochs, a learning rate, and/or regularisation. The higher test error rates (in Table 1) suggest that use of a learning rate and regularisation could reduce some overfitting, which potentially could result in fewer `true' mis-classifications.
 
-Table 3 below indicates the percentage rate of misclassification per digit. \\
+Table 3 below indicates the percentage rate of mis-classification per digit. \\An explanation of the column names:\\
 `total' is the sum of occurences of each digit in the full dataset. \\
-`misclassified' is the sum of misclassified occurences (these are the 19 misclassified digits shown in Figure 3 above):\\
-`rate (\%)' is the misclassified divided by the total, multiplied by 100. 
+`mis-classified' is the sum of mis-classified occurences (these are the 19 mis-classified digits shown in Figure 3 above):\\
+`rate (\%)' is the mis-classified divided by the total, multiplied by 100. 
 
 \begin{tabular}{|c|c|c|c|}
 \hline
-\textbf{digit}&$\textbf{total}$&$\textbf{misclassified}$&\textbf{rate} (\%)\\
+\textbf{digit}&$\textbf{total}$&$\textbf{mis-classified}$&\textbf{rate} (\%)\\
 \hline
 0&1553&1&0.06\\
 \hline
@@ -128,47 +129,35 @@ Table 3 below indicates the percentage rate of misclassification per digit. \\
 9&821&1&0.12\\
 \hline
 \end{tabular}\par 
-Table 3. Rates of misclassifications with full dataset $(\%)$
+Table 3. Rates of mis-classifications with full dataset $(\%)$
 
-\end{enumerate}
-\clearpage
-\section*{3 Kernel perceptron contin.}
-\begin{enumerate}
-\item[(5)] TODO ... \\
-
-Repeating 1 and 2 with a Gaussian kernel  ($d^*$ is now $c$ and {1,...,7} is now $S$):\\
-From 20 runs for $c = 1, ... , 7$. \\
-Each run uses a randomly split `zipcombo` into $80\%$ train and $20\%$ test. \\
-The mean train and test error rates and standard deviations are shown in Table 2 below:
+\item[(5)] Repeating 1 and 2 with a Gaussian kernel: \\The approach taken for selecting a range of $c$ hyperparameter was entirely empirical. Starting first with very small subsets of the dataset, a wide range of $c$ was tried out. The initial guess of the range of values to try was very close to that eventually used with 10-fold differences from 0.0001 to 50. This seemingly crude approach yielded very low test errors across a broad range of $c$ values between 0.001 and 1, with the lowest at 0.01 (0.59$\pm$0.08\%).\\
 
 \begin{tabular}{|c|c|c|c|}
 \hline
-$d$&$\textbf{train}$&$\textbf{test}$\\
+$c$&$\textbf{train error (\%)}$&$\textbf{test error (\%)}$\\
 \hline
-$1$&00.00$\pm$0.0&00.00$\pm$0.0\\
+$0.0001$&15.77$\pm$2.83&3.21$\pm$0.49\\
 \hline
-$2$&00.00$\pm$0.0&00.00$\pm$0.0\\
+$0.001$&6.15$\pm$1.68&1.53$\pm$0.39\\
 \hline
-$3$&00.00$\pm$0.0&00.00$\pm$0.0\\
+$0.01$&0.17$\pm$0.06&0.59$\pm$0.08\\
 \hline
-$4$&00.00$\pm$0.0&00.00$\pm$0.0\\
+$0.1$&0.07$\pm$0.07&1.07$\pm$0.12\\
 \hline
-$5$&00.00$\pm$0.0&00.00$\pm$0.0\\
+$1$&0.03$\pm$0.02&1.36$\pm$0.11\\
 \hline
-$6$&00.00$\pm$0.0&00.00$\pm$0.0\\
+$10$&0.00$\pm$0.01&3.91$\pm$0.14\\
 \hline
-$7$&00.00$\pm$0.0&00.00$\pm$0.0\\
+$50$&0.00$\pm$0.00&13.41$\pm$0.2\\
 \hline
 \end{tabular}\par 
-Table X
+Table 4. Mean train and test error rates (\%) across 20 runs
 
-Cross-validation: \\
-A “best” parameter $c^*$ is determined by 5-fold cross-validation of the $80\%$ training data split. \\
-Using this $c^*$, we retrain on the full $80\%$ training set. The test errors are computed on the remaining $20\%$ using the same $c^*$. \\
-The test error for this value of $c^*$ is recorded and the process above is repeated 19 more times, resulting in 20 $c^*$ and 20 test errors.\\
-The mean test error and mean $c^*$ is 00.00 $\pm$ 0.0 and 0.0 respectively.
-
-
+A``best” parameter $c^*$ is determined 20 times by 5-fold cross-validation of the $80\%$ training data split. \\
+Using this $c^*$, we re-train weights with the full $80\%$ training set and run tests on the remaining 20\% errors. \\
+Of the 20 $c^*$s, the mean and standard deviation was of $c^*$ 0.01 $\pm$ 1.73. (This high standard deviation is not surprising given the 10-fold difference between the different $c$ values used).
+Of the same 20 for which tests were run (on the 20\% dataset), the mean and standard deviation test error was 0.59$\pm$0.08\%.
 
 \end{enumerate}
 \clearpage
