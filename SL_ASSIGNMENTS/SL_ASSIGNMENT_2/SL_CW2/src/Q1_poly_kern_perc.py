@@ -42,7 +42,7 @@ def run_kp(zipcombo, degree, epochs, k_classes=10, num_of_runs=20, write_results
         k_mat = np.tile(A=kernel_matrix_train_80, reps=(epochs, epochs))
 
         # TRAIN WEIGHTS & CALC ERRORS:
-        error_rate_prct_train, trained_alpha = shfun.train_kp(y=y, k_mat=k_mat, degree=degree, k_classes=k_classes)
+        error_rate_prct_train, trained_alpha = shfun.train_kp(y=y, k_mat=k_mat, d_or_c=degree, k_classes=k_classes)
         error_rates_train[i] = error_rate_prct_train
 
         # (OPTIONAL) WRITE EACH RESULT OUT TO FILE:

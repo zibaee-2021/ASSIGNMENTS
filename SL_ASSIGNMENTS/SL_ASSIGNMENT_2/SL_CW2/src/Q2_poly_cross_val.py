@@ -58,7 +58,7 @@ def run_cv_kp(ds, degrees, num_of_runs=20, k_classes=10, epochs=3, write_results
         k_mat = np.tile(A=kernel_matrix_train_80, reps=(epochs, epochs))
 
         # TRAIN WEIGHTS (not interested in this error):
-        _, trained_alpha = shfun.train_kp(y=y, k_mat=k_mat, degree=d_star, k_classes=k_classes)
+        _, trained_alpha = shfun.train_kp(y=y, k_mat=k_mat, d_or_c=d_star, k_classes=k_classes)
 
         # TEST ON 20% DATASET WITH TRAINED WEIGHTS FROM 80% DATASET AND USING `d_star` ------------------------------
 
@@ -74,7 +74,7 @@ def run_cv_kp(ds, degrees, num_of_runs=20, k_classes=10, epochs=3, write_results
         k_mat = np.tile(A=kernel_matrix_train_80_test_20, reps=epochs)
 
         # TEST WITH TRAINED WEIGHTS & CALC ERRORS:
-        test_error_prct = shfun.test_kp(ds=ds, k_mat=k_mat, trained_alpha=trained_alpha, y=y_test_20, degree=d_star)
+        test_error_prct = shfun.test_kp(ds=ds, k_mat=k_mat, trained_alpha=trained_alpha, y=y_test_20, d_or_c=d_star)
         _20_test_error_rates[i] = test_error_prct
         print(f'd_star {d_star} has test error {test_error_prct}')
 
