@@ -41,7 +41,7 @@ $6$&0.09$\pm$0.04&0.60$\pm$0.06\\
 $7$&0.07$\pm$0.03&0.62$\pm$0.07\\
 \hline
 \end{tabular}\par 
-Table 1. Mean train and test error rates (\%) across 20 runs
+Table 1. Mean train and test error rates (\%) across 20 runs with polynomial kernel
 
 \item[(2)] 
 A``best” parameter $d^*$ is determined 20 times by 5-fold cross-validation of the $80\%$ training data split. \\
@@ -57,9 +57,9 @@ Of the same 20 for which tests were run (on the 20\% dataset), the mean and stan
 \item[(3)]
 The same operations as question 2 were repeated, replacing mistake counts with confusion matrices. The values in this matrix are calculated by counting the number of instances whereby a particular digit (`true $y$') was mis-classified (`predicted $y$'), such that every combination of mis-classifications is added up and divided by the total count of that particular digit, giving the mean values (Figure 1). \\
 \includegraphics[scale=0.4]{images_for_tex_doc/mean_confs.png}\\
-Figure 1. Mean confusions \\
+Figure 1. Mean confusion rates from 20 runs, on test datasets. \\
 \includegraphics[scale=0.4]{images_for_tex_doc/stdev_confs.png}\\
-Figure 2. Standard deviations of confusions\\
+Figure 2. Standard deviations of confusion rates from 20 runs, on test datasets.\\
 \end{enumerate}
 \clearpage
 \section*{3 Kernel perceptron contin.}
@@ -74,15 +74,11 @@ The sum of confusion error rates for each digit, according to the 20\% test set 
 0.99&0.69&3.16&4.88&4.22&5.30&2.28&2.79&5.68&3.64\\
 \hline
 \end{tabular}\par 
-Table 2.
-Hence the five hardest-to-predict numbers according to the confusion matrix are: 8, 5, 3, 4, 9 (in order from the hardest).
-
-However, the wording of the question seems to suggest that it is individual images (rather than one of the 10 classes), and potentially from within the full unsplit dataset, that the five hardest-to-predict should be identified. It is not completely clear how to find the five hardest by this definition. The approach taken was as follows:\\
-The weights were trained on the full data set, 3 epochs were used as before, with degree 5 (rounded down from the mean $d^*$ calculated in question 2. ($d=5.55$ was tried but unsurprisingly - in hindsight - it caused numerical instability issues). Predictions were then made, again on the full dataset, using the trained weights. \\
-19 digits were mis-classified out the 9298 digits that are in the full dataset, shown in Figure 3 below:
-
-\includegraphics[scale=0.25]{images_for_tex_doc/19_misclassed.png}\\
-Figure 3. 19 incorrectly predicted images from the full dataset of 9298 digits.
+Table 2. The sum of confusion error rates for each digit (20\% test set)\\
+So five hardest-to-predict numbers according to the confusion matrix are: 8, 5, 3, 4, 9 (from the hardest).\\
+The wording of the question suggests that it may be after individual images (rather classes), and potentially from the full dataset, though it's not completely clear. Nonetheless, weights were trained on the full data set (3 epochs), degree 5 (rounded down from mean $d^*$ in Q2. ($d=5.55$ was tried but it caused numerical instability issues). Predictions were then made, again on the full dataset, using the trained weights. 19 digits were mis-classified out the 9298 digits that are in the full dataset, shown in Figure 3 below:\\
+\includegraphics[scale=0.4]{images_for_tex_doc/19_misclassed.png}\\
+Figure 3. 19 incorrectly predicted images from the full dataset of 9298 digits, using polynomial kernel.
 \end{enumerate}
 \clearpage
 \section*{3 Kernel perceptron contin.}
@@ -129,7 +125,7 @@ Table 3 below indicates the percentage rate of mis-classification per digit. \\A
 9&821&1&0.12\\
 \hline
 \end{tabular}\par 
-Table 3. Rates of mis-classifications with full dataset $(\%)$
+Table 3. Polynomial kernel rates of mis-classifications with full dataset $(\%)$
 
 \item[(5)] Repeating 1 and 2 with a Gaussian kernel: \\The approach taken for selecting a range of $c$ hyperparameter was entirely empirical. Starting first with very small subsets of the dataset, a wide range of $c$ was tried out. The initial guess of the range of values to try was very close to that eventually used with 10-fold differences from 0.0001 to 50. This seemingly crude approach yielded very low test errors across a broad range of $c$ values between 0.001 and 1, with the lowest at 0.01 (0.59$\pm$0.08\%).\\
 
@@ -152,7 +148,7 @@ $10$&0.00$\pm$0.01&3.91$\pm$0.14\\
 $50$&0.00$\pm$0.00&13.41$\pm$0.2\\
 \hline
 \end{tabular}\par 
-Table 4. Mean train and test error rates (\%) across 20 runs
+Table 4. Mean train and test error rates (\%) across 20 runs with Gaussian kernel
 
 A``best” parameter $c^*$ is determined 20 times by 5-fold cross-validation of the $80\%$ training data split. \\
 Using this $c^*$, we re-train weights with the full $80\%$ training set and run tests on the remaining 20\% errors. \\
@@ -163,70 +159,51 @@ Of the same 20 for which tests were run (on the 20\% dataset), the mean and stan
 \clearpage
 \section*{3 Kernel perceptron contin.}
 \begin{enumerate}
-\item[(6)] TODO ...\\
+\item[(6)] One possible alternative method might be to combine the polynomial and Gaussian kernel perceptrons. \\
+The digits that were misclassified by the polynomial kernel were highlighted in the confusion matrix (Figure 1) and 19 misclassified in full dataset (Figure 3). This was repeated with the Gaussian kernel in order to see certain each kernel is better/worse at classifying certain digits compared to each other. The idea being that one might then apply a weighted combination of their predictions according to their relative strengths/weaknesses with regards to individual classes. \\
+Indeed, it appears, from the full dataset, that the Gaussian kernel (using $c$=0.01) may be worse at predicting 8s than the polynomial kernel ($d$=5) which may be worse at predicting 4s (Figure 4).\\
+\includegraphics[scale=0.5]{images_for_tex_doc/26_gauss_misclassed.png}\\
+Figure 4. 26 incorrectly predicted images from the full dataset of 9298 digits, using Gaussian kernel.
 
-An alternate method to generalise the kernel perceptron to $k$-classes might be to use ...: \\
-
-Basic results: \\
-Each run uses a randomly split `zipcombo` into $80\%$ train and $20\%$ test. \\
-The mean train and test error rates and standard deviations are shown in Table 3 below:
-
-\begin{tabular}{|c|c|c|c|}
-\hline
-$d$&$\textbf{train}$&$\textbf{test}$\\
-\hline
-$1$&00.00$\pm$0.0&00.00$\pm$0.0\\
-\hline
-$2$&00.00$\pm$0.0&00.00$\pm$0.0\\
-\hline
-$3$&00.00$\pm$0.0&00.00$\pm$0.0\\
-\hline
-$4$&00.00$\pm$0.0&00.00$\pm$0.0\\
-\hline
-$5$&00.00$\pm$0.0&00.00$\pm$0.0\\
-\hline
-$6$&00.00$\pm$0.0&00.00$\pm$0.0\\
-\hline
-$7$&00.00$\pm$0.0&00.00$\pm$0.0\\
-\hline
-\end{tabular}\par 
-Table 3. Error rates $(\%)$
-
-Cross-validation: \\
-A “best” parameter $c^*$ is determined by 5-fold cross-validation of the $80\%$ training data split. \\
-Using this $c^*$, we retrain on the full $80\%$ training set. The test errors are computed on the remaining $20\%$ using the same $c^*$. \\
-The test error for this value of $c^*$ is recorded and the process above is repeated 19 more times, resulting in 20 $c^*$ and 20 test errors.\\
-The mean test error and mean $c^*$ is 00.00 $\pm$ 0.0 and 0.0 respectively.
-
+As such, the updates would make use of both kernel simultaneously, applying perhaps a 50-50 weighting for most of the 10 classifiers, but a weighted preference for the polynomial's 8-classifier, while applying a weighted preference for the Gaussian's 4-classifier. The weights may be set according to the actual numbers of mis-classifications/confusions.
 
 \end{enumerate}
 \clearpage
 \section*{3 Kernel perceptron contin.}
+
 \begin{enumerate}
-\item[(6)] TODO ...\\
-$\textbf{A.}$\\
-A discussion of any parameters of your method which were not cross-validated over.
+\item[(6)] Contin.\\
+On the whole though, with test data, the confusion rates are lower using a Gaussian kernel. Figure 5 shows the mean confusion rates from 20 runs, with values multiplied by 100 just to make the rate numbers visible (otherwise most of the matrix would display ``0.00"). \\
+\includegraphics[scale=0.5]{images_for_tex_doc/gauss_conf_rates.png}\\
+Figure 4. Mean confusion rates from 20 runs, on test datasets, using Gaussian kernel.
 
-$\textbf{B.}$\\
-A discussion of the two methods chosen for generalising 2-class classifiers to k-class classifiers.
-
-$\textbf{C.}$\\ 
-A discussion comparing results of the Gaussian to the polynomial Kernel.
-
-$\textbf{D.}$\\ 
-A discussion of our implementation of the kernel perceptron:\\ 
-$$\mathbf{w}(\cdot) = \sum_{i=0}^{m} \alpha_i K(\mathbf{x}_i, \cdot)$$ \\
-represents a function $\textbf{w}$ which takes some input (which here is expected to be the flattened array of MNIST image pixels for a digit and computes the weighted sum of kernel evaluations for this input and the image pixels for all the other digits in some dataset.\\
-Alpha, the classifier, is an array of coefficients which are learned during training, according to mistakes made. The original mathematica code uses variable `GLBcls` for alpha. We replaced this with `alphas`.\\
-The result of the weighted sum 
-
-(i) was represented by.... \\
-(ii) was evaluated by ... \\
-(iii) had new terms added to it during training by ... \\
-
-$\textbf{E.}$\\ 
-(Any table produced in 1-6 above should also have at least one sentence discussing the table.)
 
 \end{enumerate}
+$\textbf{A.}$\\
+Only degrees $d$ or width $c$ were cross-validated over. Other parameters/hyperparameters that might have been cross-valdiated over include epoch number, numbers of runs, learning rate, regularisation. The explicit instructions in the questions were prioritised as much as possible, but the aforementioned parameters/hyperparameters would have been cross-validated over with more time and/or available compute power.
+
+$\textbf{B.}$\\
+The initial method chosen for generalised to a k-class classifier was one-vs-all. This was the interpretation of the method used in the mathematica code, wherein all 3 classifiers are trained and the one with the highest prediction score out of the 3 is the prediction.
+
+$\textbf{C.}$\\ 
+Comparison of results of the Gaussian to the polynomial Kernel. It was expected that the results would be noticeably better with the Gaussian kernel than the polynomial. For one, it is known that with a polynomial kernel, your data is not guaranteed to be separable, whereupon the kernel perceptron will not likely converge, whereas with a Gaussian kernel you are guaranteed to converge. However for the given dataset, and over the limited extent of parameter experimentation, the test errors with an optimal degree and width was remarkably low for both polynomial and Gaussian kernels, at 0.6$\pm$0.09\% and 0.59$\pm$0.08\%, respectively.
+
+
+$\textbf{D.}$\\ 
+Our implementation of the kernel perceptron follows the description in the question sheet and mathematica code:\\ 
+Epochs were modeled by duplication of the dataset (which was implemented with NumPy's tile() function), such that epoch=3 resulted in the dataset tripled in size, the dataset repeating 3 times in one array:\\ 
+\includegraphics[scale=0.4]{images_for_tex_doc/data_epoched.png}\\
+To implement the kernel perceptron, a `pseudo-online learning' method was used, whereby the kernel matrix is pre-computed, but updates are performed one data point at a time. For each data point (aka time point or step), the dot product is taken of a slice of the kernel matrix and the correspondingly shape-matched slice of the weights array ($\alpha$). This is done by iterating over the datapoints in the epoch-duplicated dataset in a for-loop. The slices of $\alpha$ and the kernel matrix are taken from the beginning (i.e. 0-index) up to the current iteration, such that the dot product serves to compute the sum of all ``previous" multiplications of $\alpha$ and the kernel matrix. This is in line with the description in the prediction section of the question sheet: \\
+\includegraphics[scale=0.4]{images_for_tex_doc/predict.png}\\
+However, the signum is applied to the true $y$ labels, not to the dot product of $\alpha$ and the kernel evaluation - as shown in the equation from the question sheet, but rather as it is in the mathematica code. \\ Following the mathematica code further, the predicted value, $\hat{y}$, is not compared with the true label, $y$, but is multiplied by the prediction. A correct prediction is inferred if the product gives a positive (scalar) value, otherwise it is deemed to be incorrect such that the weights should be updated. The update is implemented by directly assigning the value of the true label $y$ to the weights for this data point to each of the 10 classifiers. However, $\alpha$ is not changed at all and not assigned to 0 if the prediction is deemed to be correct, which seems not to be the update graphic on the question sheet.\\
+\includegraphics[scale=0.4]{images_for_tex_doc/update.png}\\
+The update also appears slightly different in the mathematica code in terms of updating the weights by the value of the prediction, (via the signum function). \\
+\includegraphics[scale=0.4]{images_for_tex_doc/update_math.png}\\
+As such, our implementation takes features of each of these two forms, which may or may not be exactly the way it is being instructed to be implemented, but produces a very effective result. Three epochs were chosen and were not compared with 1, 2, 4, 5, or anything other, so it's quite possible that the accuracy of the predictions could be further improved. This is implemented in `shared\_functions.train\_kp() function`. 
+($\textbf{w}$ is not represented or directly calculated. All the learning is done by updates to the variable called $\alpha$, which contains the coefficients of the classifiers).
+
+$\textbf{E.}$\\
+(Tables are described where they appear.)
+
 \clearpage
 \end{document}
