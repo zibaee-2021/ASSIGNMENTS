@@ -112,13 +112,18 @@ def build_systematic_encoding_matrix(H=None):
 # The function should return a decoded vector along with the following return code: 0 for success,
 # −1 if the maximum number of iterations is reached without a successful decoding.
 # -------------------------------------------------------------------------------------------------------------------
+
+# STORE A GLOBAL REFERENCE TO PROBABILITIES OF EACH BIT IN THE CODEWORD.
+# THIS IS THE "MESSAGE" THAT IS PASSED AND UPDATED
+# IF THE LLR OF A BIT IS POSITIVE, IT MEANS THE PROBABILITY OF THE BIT BEING 0 IS HIGHER THAN IT BEING 1
+# IF THE LLR OF A BIT IS NEGATIVE, IT MEANS THE PROBABILITY OF THE BIT BEING 1 IS HIGHER THAN IT BEING 1
 log_likelihood_ratio = np.zeros((1, 1000))
 
 
 def _compute_global_log_likelihood_ratios(p_y):
     """
     Convert the likelihoods of 0 and likelihoods of 1 for each possible bit, to a single value per bit in terms of a
-    log-likelihood ratio. Hence convert a 2d array of shape (2, len(y) into a 1d array of shape (1, len(y)),
+    log-likelihood ratio. Hence convert a 2d array of shape (2, len(y)) into a 1d array of shape (1, len(y)),
     while not losing information. This is done for convenience.
     :param p_y: Likelihoods of 0 and likelihoods of 1 for each possible bit. 2d array of shape (2, len(y)).
     :return: Log-likelihood ratios. 1d array of shape (1, len(y)).
@@ -138,8 +143,8 @@ def _init_message_passing(y, p):
     """
     prob_flipped, prob_not_flipped = p, 1 - p
     x0_1 = np.array([[0], [1]])
-    xn_to_fm = (prob_flipped ** (x0_1 - y) % 2 * prob_not_flipped ** ((x0_1 - y + 1) % 2)).squeeze()
-    return xn_to_fm
+    p_y_given_x = (prob_flipped ** (x0_1 - y) % 2 * prob_not_flipped ** ((x0_1 - y + 1) % 2)).squeeze()
+    return p_y_given_x
 
 
 def _prob_of_y_given_x(_2d_probs):
@@ -304,7 +309,7 @@ def _compute_variable_to_factor_msgs(hat_H, y):
 
         for neigh_fac in neighbour_factors:
             msg_for_factor = _compute_msg_for_factor(y, var_i, incoming_factors=neighbour_factors,
-                                               recipient_factor=neigh_fac)
+                                                     recipient_factor=neigh_fac)
             _send_msg_to_recipient_var(neigh_fac, msg_for_factor)
 
     # return xn_to_fm
@@ -346,8 +351,8 @@ def decode_vector(hat_H=None, y=None, p=0.1, max_iterations=20):
 
     _init_and_cache_global_neighbour_variables_of_each_factor(hat_H)
     _init_and_cache_global_neighbour_factors_of_each_variable(hat_H)
-    xn_to_fm = _init_message_passing(y, p)
-    _compute_global_log_likelihood_ratios(xn_to_fm)
+    p_y_given_x = _init_message_passing(y, p)
+    _compute_global_log_likelihood_ratios(p_y_given_x)
 
     for iteration in range(max_iterations):
 
@@ -366,10 +371,15 @@ def decode_vector(hat_H=None, y=None, p=0.1, max_iterations=20):
             # candidate_word = ..
             return_code = 0
 
-    return candidate_word, return_code
+    # return candidate_word, return_code
+    return return_code
 
 
 if __name__ == '__main__':
+
+    decode_vector()
+
+
     # H = np.array([[1, 1, 1, 1, 0, 0],
     #                [0, 0, 1, 1, 0, 1],
     #                [1, 0, 0, 1, 1, 0]], dtype=np.float64)
