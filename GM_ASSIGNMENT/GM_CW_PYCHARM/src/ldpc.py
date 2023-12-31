@@ -187,10 +187,11 @@ indices_of_neighbouring_variables_per_factor = dict()
 indices_of_neighbouring_factors_per_variable = dict()
 
 
-def _cache_global_neighbour_variables_of_each_factor(hat_H):
+def _init_and_cache_global_neighbour_variables_of_each_factor(hat_H):
     """
-    Pre-compute the list of 'neighbouring' variables to each factor. (These are the connecting variables according
-    to a factor-graph representation. The variables are listed by their index positions.
+    Pre-compute the list of 'neighbouring' variables to each factor at start.
+    (These are the connecting variables according to a factor-graph representation.
+    The variables are listed by their index positions.)
     :param hat_H: Systematic form of parity check matrix.
     :return: Index positions of neighbouring variables per factor. Dict of 1d arrays of index positions,
     key is factor row number (0-indexed).
@@ -202,12 +203,13 @@ def _cache_global_neighbour_variables_of_each_factor(hat_H):
     return indices_of_neighbouring_variables_per_factor
 
 
-def _cache_global_neighbour_factors_of_each_variable(hat_H):
+def _init_and_cache_global_neighbour_factors_of_each_variable(hat_H):
     """
-    Pre-compute the list of 'neighbouring' variables to each factor. (These are the connecting variables according
-    to a factor-graph representation. The variables are listed by their index positions.
+    Pre-compute the list of 'neighbouring' factors to each variable at start.
+    (These are the connecting factors according to a factor-graph representation.
+    The factors are listed by their index positions.)
     :param hat_H: Systematic form of parity check matrix.
-    :return: Index positions of neighbouring variables per factor. Dict of 1d arrays of index positions,
+    :return: Index positions of neighbouring factors per variable. Dict of 1d arrays of index positions,
     key is factor row number (0-indexed).
     """
     global indices_of_neighbouring_factors_per_variable
@@ -342,8 +344,8 @@ def decode_vector(hat_H=None, y=None, p=0.1, max_iterations=20):
     if not word_to_decode:
         word_to_decode = np.loadtxt('../inputs/y1.txt').reshape(-1, 1)  # shape (1000,1)
 
-    _cache_global_neighbour_variables_of_each_factor(hat_H)
-    _cache_global_neighbour_factors_of_each_variable(hat_H)
+    _init_and_cache_global_neighbour_variables_of_each_factor(hat_H)
+    _init_and_cache_global_neighbour_factors_of_each_variable(hat_H)
     xn_to_fm = _init_message_passing(y, p)
     _compute_global_log_likelihood_ratios(xn_to_fm)
 
