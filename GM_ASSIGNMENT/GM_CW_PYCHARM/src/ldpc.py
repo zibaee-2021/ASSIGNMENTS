@@ -219,6 +219,8 @@ def _indicator(y, incoming_variables, recipient_variable):
     xn = y[recipient_variable]
     sum_for_indicator = xn
     for var_i in incoming_variables:
+        if var_i == 915:
+            pass
         sum_for_indicator += y[var_i]
     return __indicator(sum_for_indicator)
 
@@ -256,7 +258,7 @@ def __compute_prob_msg_for_variable(xn_to_fm, y, i_factor, i_incoming_variables,
 
         i_all_vars_but_recipient = [v for v in i_incoming_variables if v != i_recipient_variable]
 
-        if _indicator(y, i_incoming_variables, i_recipient_variable) == 1:
+        if 1 == _indicator(y=y, incoming_variables=i_incoming_variables, recipient_variable=i_recipient_variable):
             for i_var in i_all_vars_but_recipient:
                 prob = xn_to_fm[i_factor, i_var]
                 product *= prob
@@ -366,36 +368,43 @@ def _compute_variable_to_factor_msgs(hat_H, p_y_given_x, fm_to_xn, xn_to_fm, i_n
     return xn_to_fm
 
 
-def _are_marginals_relatively_unchanged(fm_to_xn, p_y_given_x, marginals):
+def _compute_marginals(fm_to_xn, p_y_given_x):
     """
-    (Re)compute the marginal probabilities (aka 'beliefs'), proportional to all the incoming messages...
-    :return: marginals
+    Compute the marginal probabilities, (which here are posterior to 'observed data').
+    :param fm_to_xn: Factor-to-variable probability-messages. 2d array of shape (750, 1000).
+    :param p_y_given_x: Initial probability of the received word given the noise ratio of the BSC.
+    :return: Marginal probabilities.
     """
-    marginals_are_relatively_unchanged = False
-    # COMPUTE MARGINALS:
-    product_of_prob_msgs = np.prod(fm_to_xn, axis=0).reshape(1, 1) # TAKE PRODUCT OF ALL ROWS, giving shape (1, 1000)
+    product_of_prob_msgs = np.prod(fm_to_xn, axis=0).reshape(1, 1)
     llr = _compute_log_likelihood_ratios(p_y_given_x)
     new_marginals = np.prod(llr, product_of_prob_msgs)
+    return new_marginals
 
 
+def _are_marginals_relatively_unchanged(new_marginals, marginals):
+    """
+    (Re)compute the marginal probabilities (aka 'beliefs'), proportional to all the incoming messages.
+    :param new_marginals: Marginal probabilities calculated at the end of he current iteration.
+    :param marginals: Marginals probabilities calculated in preceding iteration.
+    :return: True if converged
+    """
     marginals_change_threshold = 0.5  # NO IDEA WHAT THRESHOLD TO USE YET .. TODO
+    marginals_are_relatively_unchanged = False
+
     if new_marginals - marginals < marginals_change_threshold:
         marginals_are_relatively_unchanged = True
-    return marginals_are_relatively_unchanged, new_marginals
+    return marginals_are_relatively_unchanged
 
 
 def _compute_candidate_word(hat_p_x_given_y):
     """
-    If the log likelihood ratio of a bit is positive, the bit is predicted to be 0.
-    If negative the bit is predicted to be 1.
-    And vice versa.
-    :param hat_p_x_given_y: Probability of x given y.
-    :return:
+    If the log likelihood ratio of a bit is positive (or 0), the bit is predicted to be 0.
+    If the log likelihood ratio of a bit is negative, the bit is predicted to be 1.
+    :param hat_p_x_given_y: (Marginal) probability of x given y. In the form of log likelihood ratios.
+    :return: The most likely word.
     """
-    pass
-    # candidate_word =
-    # new_array = (original_array < 0).astype(int)
-    # return candidate_word
+    candidate_word = (hat_p_x_given_y < 0).astype(int)
+    return candidate_word
 
 
 # `STEPS` MENTIONED WITHIN THIS FUNCTION ARE A DIRECT REFERENCE TO SLIDE#23 IN `ldpc.pdf` OF D. ADAMSKIY LECTURE SLIDES.
@@ -441,7 +450,7 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
 
     # PERFORM MESSAGE PASSING UNTIL CONVERGENCE OR FOR THE MAXIMUM NUMBER OF ITERATIONS,
     # COMPUTING THE MARGINALS AT EACH ITERATION TO DETERMINE WHETHER CONVERGED:
-    for iteration in range(max_iterations):
+    for i in range(max_iterations):
 
 # ------# STEP 2. (RE)COMPUTE FACTOR-TO-VARIABLE MESSAGES (PROBABILITIES) ACCORDING TO PARITY CONSTRAINTS: -----------
         fm_to_xn = _compute_factor_to_variable_msgs(hat_H, y, xn_to_fm, fm_to_xn, i_of_neighbouring_vars_per_factor)
@@ -451,11 +460,13 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
                                                     i_of_neighbouring_factors_per_var)
 
 # ------# STEP 4. COMPUTE MARGINALS. IF RELATIVELY UNCHANGED, USE PROBABILITIES TO DECODE WORD TO CANDIDATE WORD. ----
-        marginals_are_unchanged, marginals = _are_marginals_relatively_unchanged(fm_to_xn, p_y_given_x, marginals)
+        new_marginals = _compute_marginals(fm_to_xn=fm_to_xn, p_y_given_x=p_y_given_x)
+        marginals_are_unchanged = _are_marginals_relatively_unchanged(new_marginals, marginals)
+        marginals = new_marginals
 
-        if marginals_are_unchanged:
+        if i > 0 and marginals_are_unchanged:
             # IT IS ASSUMED TO HAVE CONVERGED:
-            candidate_word = _compute_candidate_word(p_y_given_x, fm_to_xn)
+            candidate_word = _compute_candidate_word(marginals)
 
             # CHECK PARITY OF CANDIDATE WORD AND IF PASSES PARITY, STOP, RETURN WORD & 0.
             if _passes_parity_check(candidate_word, hat_H):
