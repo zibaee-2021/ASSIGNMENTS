@@ -274,7 +274,7 @@ def _compute_factor_to_variable_msgs(xn_to_fm, fm_to_xn, hat_H, y, i_neighbours_
     :return: Updated probability-message.
     """
     number_of_factors, number_of_variables = hat_H.shape
-    fm_to_xn = np.zeros((number_of_factors, number_of_variables))
+
 
     # ITERATE THROUGH EACH FACTOR TO VARIABLE NEIGHBOUR:
     for i_factor, factor in enumerate(hat_H):
@@ -296,8 +296,7 @@ def __compute_prob_msg_for_factor(fm_to_xn, p_y_given_x, i_var, i_incoming_facto
     Compute the sum of products of all (incoming) variable probability-messages (in order to pass this on to a
     variable from this factor).
     :param fm_to_xn: Factor-to-variable probability-messages. 2d array of shape (factors, variables), here (750,1000).
-    :param p_y_given_x: Conditional probability of received word given the sent word. 1d array (variables, 1),
-    here (1000, 1).
+    :param p_y_given_x: Conditional probability of received word given the sent word. 2d array of shape (1000,2).
     :param i_var: Index of the given variable for which the probability-message destined for the recipient factor is
     being calculated.
     :param i_incoming_factors: Indices of all factors connected this variable.
@@ -317,34 +316,33 @@ def __compute_prob_msg_for_factor(fm_to_xn, p_y_given_x, i_var, i_incoming_facto
     return product * llr
 
 
-def _compute_variable_to_factor_msgs(fm_to_xn, hat_H, p_y_given_x, i_neighbours_fs_per_v: dict):
+def _compute_variable_to_factor_msgs(hat_H, p_y_given_x, fm_to_xn, xn_to_fm, i_neighbours_fs_per_v):
     """
     (Re)compute factor-to-variables messages updating the given variable-to-factor messages.
     "(i) Take all the incoming messages apart from the one factor to which we're going to send the message now,
     we take a product of these and then
     (ii) we also multiply by the one initial probability, p(y|x).
     (iii) We take the product of all those and we send them over."
-    :param fm_to_xn: Factor-to-variable probability-messages. 2d array of shape (factors, variables), here (750, 1000).
     :param hat_H: Systematic parity check matrix. 2d array of shape (factors, variables).
-    :param p_y_given_x:
+    :param p_y_given_x: Conditional probability of received word given the sent word. 2d array of shape (1000,2).
+    :param fm_to_xn: Factor-to-variable probability-messages. 2d array of shape (factors, variables), here (750, 1000).
+    :param xn_to_fm: Variable-to-factor probability-messages. 2d array of shape (factors, variables), here (750, 1000).
     :param i_neighbours_fs_per_v: Indices of connected factors for each variable.
     :return: Updated message.
     """
-    number_of_factors, number_of_variables = hat_H.shape
-    xn_to_fm = np.zeros((number_of_factors, number_of_variables))
-
     for i_var, variable in enumerate(hat_H.T):
         i_neighbour_factors = i_neighbours_fs_per_v[i_var]
 
         for i_neigh_fac in i_neighbour_factors:
-            prob_msg_for_recipient_var = __compute_prob_msg_for_factor(fm_to_xn, p_y_given_x, i_var,
-                                                                       incoming_factors=i_neighbour_factors,
-                                                                       recipient_factor=i_neigh_fac)
+            prob_msg_for_recipient_var = __compute_prob_msg_for_factor(fm_to_xn=fm_to_xn, p_y_given_x=p_y_given_x,
+                                                                       i_var=i_var,
+                                                                       i_incoming_factors=i_neighbour_factors,
+                                                                       i_recipient_factor=i_neigh_fac)
 
-            __compute_prob_msg_for_factor(fm_to_xn, i_var, i_incoming_factors, i_recipient_factor)
-
-            fm_to_xn, i_var, i_incoming_factors, i_recipient_factor
-            xn_to_fm = _send_prob_msg_to_recipient_factor(xn_to_fm, i_neigh_fac, prob_msg_for_recipient_var)
+            # __compute_prob_msg_for_factor(fm_to_xn, i_var, i_incoming_factors, i_recipient_factor)
+            #
+            # fm_to_xn, i_var, i_incoming_factors, i_recipient_factor
+            # xn_to_fm = _send_prob_msg_to_recipient_factor(xn_to_fm, i_neigh_fac, prob_msg_for_recipient_var)
 
     return xn_to_fm
 
@@ -401,10 +399,12 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
     # FOR CONVENIENCE COMBINE THE TWO PROBS INTO ONE:
     xn_to_fm = _compute_log_likelihood_ratios(p_y_given_x)
 
+    # INIT FACTOR-TO-VARIABLE MATRIX:
+    fm_to_xn = np.zeros((hat_H.shape[0], hat_H.shape[1]))
+
     # FOR EACH FACTOR AND FOR EACH VARIABLE, STORE INDICES OF ALL CONNECTED VARIABLES AND FACTORS, RESPECTIVELY:
     i_of_neighbouring_vars_per_factor = _make_dict_of_neighbouring_variables_of_each_factor(hat_H)
     i_of_neighbouring_factors_per_var = _make_dict_of_neighbouring_factors_of_each_variable(hat_H)
-
 #---# STEPS 2, 3 & 4: ------------------------------------------------------------------------------------------------
 
     # PERFORM MESSAGE PASSING UNTIL CONVERGENCE OR FOR THE MAXIMUM NUMBER OF ITERATIONS,
@@ -412,10 +412,11 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
     for iteration in range(max_iterations):
 
 # ------# STEP 2. (RE)COMPUTE FACTOR-TO-VARIABLE MESSAGES (PROBABILITIES) ACCORDING TO PARITY CONSTRAINTS: -----------
-        fm_to_xn = _compute_factor_to_variable_msgs(hat_H, y, xn_to_fm, i_of_neighbouring_vars_per_factor)
+        fm_to_xn = _compute_factor_to_variable_msgs(hat_H, y, xn_to_fm, fm_to_xn, i_of_neighbouring_vars_per_factor)
 
 # ------# STEP 3. (RE)COMPUTE VARIABLE-TO-FACTOR MESSAGES (PROBABILITIES) ACCORDING TO PARITY CONSTRAINTS: -----------
-        xn_to_fm = _compute_variable_to_factor_msgs(hat_H, y, p_y_given_x, fm_to_xn, i_of_neighbouring_factors_per_var)
+        xn_to_fm = _compute_variable_to_factor_msgs(hat_H, p_y_given_x, fm_to_xn, xn_to_fm,
+                                                    i_of_neighbouring_factors_per_var)
 
 # ------# STEP 4. COMPUTE MARGINALS. IF RELATIVELY UNCHANGED, USE PROBABILITIES TO DECODE WORD TO CANDIDATE WORD. ----
         marginals_are_unchanged, marginals = _are_marginals_relatively_unchanged(fm_to_xn, p_y_given_x, marginals)
