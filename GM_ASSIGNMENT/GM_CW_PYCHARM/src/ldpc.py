@@ -389,7 +389,7 @@ def _compute_marginals(fm_to_xn, p_y_given_x):
 def _are_marginals_relatively_unchanged(new_marginals, marginals):
     """
     (Re)compute the marginal probabilities (aka 'beliefs'), proportional to all the incoming messages.
-    :param new_marginals: Marginal probabilities calculated at the end of he current iteration.
+    :param new_marginals: Marginal probabilities calculated at the end of the current iteration.
     :param marginals: Marginals probabilities calculated in preceding iteration.
     :return: True if converged
     """
