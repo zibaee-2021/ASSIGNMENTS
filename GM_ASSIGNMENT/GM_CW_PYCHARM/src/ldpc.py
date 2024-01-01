@@ -433,7 +433,7 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
         y = np.loadtxt('inputs/y1.txt').reshape(-1, 1)  # shape (1000,1)
 
 #---# STEP 1. INITIALISE CONDITIONAL PROBABILITIES OF WORD BASED ON RECEIVED WORD `y` AND PROBABILITY OF BIT FLIP `p`:
-    p_y_given_x = _init_message_passing(y, p)  #
+    p_y_given_x = _init_message_passing(y=y, p=p)  #
     # `p_y_given_x` IS USED IN PROBABILITY MESSAGE PASSING UPDATES VIA CONVERSION TO LOG LIKELIHOOD RATIOS,
     # WHILE THIS INITIAL VALUE IS UNCHANGED AND RE-USED IN STEPS 3 AND 4.
 
@@ -453,23 +453,24 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
     for i in range(max_iterations):
 
 # ------# STEP 2. (RE)COMPUTE FACTOR-TO-VARIABLE MESSAGES (PROBABILITIES) ACCORDING TO PARITY CONSTRAINTS: -----------
-        fm_to_xn = _compute_factor_to_variable_msgs(hat_H, y, xn_to_fm, fm_to_xn, i_of_neighbouring_vars_per_factor)
+        fm_to_xn = _compute_factor_to_variable_msgs(xn_to_fm=xn_to_fm, fm_to_xn=fm_to_xn, hat_H=hat_H, y=y,
+                                                    i_neighbours_vs_per_f=i_of_neighbouring_vars_per_factor)
 
 # ------# STEP 3. (RE)COMPUTE VARIABLE-TO-FACTOR MESSAGES (PROBABILITIES) ACCORDING TO PARITY CONSTRAINTS: -----------
-        xn_to_fm = _compute_variable_to_factor_msgs(hat_H, p_y_given_x, fm_to_xn, xn_to_fm,
-                                                    i_of_neighbouring_factors_per_var)
-
+        xn_to_fm = _compute_variable_to_factor_msgs(hat_H=hat_H, p_y_given_x=p_y_given_x, fm_to_xn=fm_to_xn,
+                                                    xn_to_fm=xn_to_fm,
+                                                    i_neighbours_fs_per_v=i_of_neighbouring_factors_per_var)
 # ------# STEP 4. COMPUTE MARGINALS. IF RELATIVELY UNCHANGED, USE PROBABILITIES TO DECODE WORD TO CANDIDATE WORD. ----
         new_marginals = _compute_marginals(fm_to_xn=fm_to_xn, p_y_given_x=p_y_given_x)
-        marginals_are_unchanged = _are_marginals_relatively_unchanged(new_marginals, marginals)
+        marginals_are_unchanged = _are_marginals_relatively_unchanged(new_marginals=new_marginals, marginals=marginals)
         marginals = new_marginals
 
         if i > 0 and marginals_are_unchanged:
             # IT IS ASSUMED TO HAVE CONVERGED:
-            candidate_word = _compute_candidate_word(marginals)
+            candidate_word = _compute_candidate_word(hat_p_x_given_y=marginals)
 
             # CHECK PARITY OF CANDIDATE WORD AND IF PASSES PARITY, STOP, RETURN WORD & 0.
-            if _passes_parity_check(candidate_word, hat_H):
+            if _passes_parity_check(word_for_parity_check=candidate_word, hat_H=hat_H):
                 return_code = 0
                 break
 
