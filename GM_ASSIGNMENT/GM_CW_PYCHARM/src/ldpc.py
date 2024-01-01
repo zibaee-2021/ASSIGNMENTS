@@ -176,14 +176,6 @@ def _passes_parity_check(word_for_parity_check, hat_H):
     return parity_prod == 0
 
 
-def __indicator(scalar_value):
-    """
-    Indicator function
-    :param scalar_value:
-    :return:
-    """
-    return 1 if scalar_value == 0 else 0
-
 def _make_dict_of_neighbouring_variables_of_each_factor(hat_H):
     """
     Pre-compute the list of 'neighbouring' variables to each factor at start.
@@ -214,15 +206,19 @@ def _make_dict_of_neighbouring_factors_of_each_variable(hat_H):
     return indices_of_neighbouring_factors_per_variable
 
 
-def _indicator(y, incoming_variables, recipient_variable):
-    # get the bit value at index value of recipient_variable
-    xn = y[recipient_variable]
-    sum_for_indicator = xn
-    for var_i in incoming_variables:
-        if var_i == 915:
-            pass
-        sum_for_indicator += y[var_i]
-    return __indicator(sum_for_indicator)
+def _indicator(y, i_incoming_variables, i_recipient_variable):
+    """
+    Indicator function which effectively determines parity the given variables.
+    :param y: Received word. 1d array of shape (1000, 1).
+    :param i_incoming_variables: Indices of incoming variables.
+    :param i_recipient_variable: Index of a recipient variable.
+    :return: 1 if the result of the sum: Xn + Sigma(Xn') over all n' is 0.
+    """
+    xn = y[i_recipient_variable]  # get bit value at index value of recipient_variable
+    sum_ = xn
+    for var_i in i_incoming_variables:
+        sum_ += y[var_i]
+    return 1 if sum_ == 0 else 0
 
 
 def __send_prob_msg_to_recipient_var(fm_to_xn, i_factor, i_neigh_var, prob_msg_for_recipient_var):
@@ -253,20 +249,16 @@ def __compute_prob_msg_for_variable(xn_to_fm, y, i_factor, i_incoming_variables,
     :return: Sum of product of all variables, other than recipient variable, that are connected to this factor.
     """
     sum_, product = 0, 0
-
     for _ in i_incoming_variables:
-
         i_all_vars_but_recipient = [v for v in i_incoming_variables if v != i_recipient_variable]
 
-        if 1 == _indicator(y=y, incoming_variables=i_incoming_variables, recipient_variable=i_recipient_variable):
+        if 1 == _indicator(y=y, i_incoming_variables=i_incoming_variables, i_recipient_variable=i_recipient_variable):
             for i_var in i_all_vars_but_recipient:
                 prob = xn_to_fm[i_factor, i_var]
                 product *= prob
         else:
             product = 0
-
         sum_ += product
-
     return sum_
 
 
@@ -362,7 +354,6 @@ def _compute_variable_to_factor_msgs(hat_H, p_y_given_x, fm_to_xn, xn_to_fm, i_n
                                                                           i_var=i_var,
                                                                           i_incoming_factors=i_neighbour_factors,
                                                                           i_recipient_factor=i_neigh_fac)
-
             xn_to_fm = __send_prob_msg_to_recipient_factor(xn_to_fm=xn_to_fm, i_var=i_var, i_neigh_fac=i_neigh_fac,
                                                            prob_msg_for_recipient_factor=prob_msg_for_recipient_factor)
     return xn_to_fm
