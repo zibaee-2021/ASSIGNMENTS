@@ -124,7 +124,7 @@ def _compute_log_likelihood_ratios(p_y):
     :param p_y: Likelihoods of 0 and likelihoods of 1 for each possible bit. 2d array of shape (2, len(y)).
     :return: Log-likelihood ratios. 1d array of shape (1, len(y)).
     """
-    log_likelihood_ratio = np.log(p_y[0] / p_y[1])
+    log_likelihood_ratio = np.log(p_y[:, 0] / p_y[:, 1])
     return log_likelihood_ratio
 
 
@@ -139,7 +139,7 @@ def _init_message_passing(y, p):
     """
     prob_flipped, prob_not_flipped = p, 1 - p
     x0_1 = np.array(([0, 1]))
-    prob_flipped = prob_flipped ** (x0_1 - y) % 2
+    prob_flipped = prob_flipped ** ((x0_1 - y) % 2)
     prob_not_flipped = prob_not_flipped ** ((x0_1 - y + 1) % 2)
     p_y_given_x = prob_flipped * prob_not_flipped
     return p_y_given_x
@@ -224,7 +224,17 @@ def _indicator(y, incoming_variables, recipient_variable):
 
 
 def __send_prob_msg_to_recipient_var(fm_to_xn, i_factor, i_neigh_var, prob_msg_for_recipient_var):
+    """
+    Send (i.e. update) the probability-message with respect to the given factor-to-variable matrix for the
+    recipient variable, connected to the given factor.
+    :param fm_to_xn: Factor-to-variable probabilities-messages. 2d array of shape (750,1000).
+    :param i_factor: Index of the factor from which the message is passed to the connected recipient variable.
+    :param i_neigh_var:  Index of the connected variable to which the message is passed.
+    :param prob_msg_for_recipient_var: Probability-message that is to be sent to the recipient variable.
+    :return: Updated factor-to-variable matrix.
+    """
     fm_to_xn[i_factor, i_neigh_var] = prob_msg_for_recipient_var
+    # NORMALISE STEP NEEDED HERE ?
     return fm_to_xn
 
 
@@ -273,9 +283,6 @@ def _compute_factor_to_variable_msgs(xn_to_fm, fm_to_xn, hat_H, y, i_neighbours_
     :param i_neighbours_vs_per_f: Indices of connected variables for each factor.
     :return: Updated probability-message.
     """
-    number_of_factors, number_of_variables = hat_H.shape
-
-
     # ITERATE THROUGH EACH FACTOR TO VARIABLE NEIGHBOUR:
     for i_factor, factor in enumerate(hat_H):
         i_neighbour_variables = i_neighbours_vs_per_f[i_factor]
@@ -289,6 +296,21 @@ def _compute_factor_to_variable_msgs(xn_to_fm, fm_to_xn, hat_H, y, i_neighbours_
                                                         prob_msg_for_recipient_var=prob_msg_for_recipient_var)
 
     return fm_to_xn
+
+
+def __send_prob_msg_to_recipient_factor(xn_to_fm, i_var, i_neigh_fac, prob_msg_for_recipient_factor):
+    """
+    Send (i.e. update) the probability-message with respect to the given variable-to-factor matrix for the
+    recipient factor, connected to the given variable.
+    :param xn_to_fm: Variable-to-factor probabilities-messaaes. 2d array of shape (750,1000).
+    :param i_var: Index of the variable from which the message is passed to the connected recipient factor.
+    :param i_neigh_fac: Index of the connected factor to which the message is passed.
+    :param prob_msg_for_recipient_factor: Probability-message that is to be sent to the recipient factor.
+    :return: Updated variable-to-factor matrix.
+    """
+    xn_to_fm[i_neigh_fac, i_var] = prob_msg_for_recipient_factor
+    # NORMALISE STEP NEEDED HERE ?
+    return xn_to_fm
 
 
 def __compute_prob_msg_for_factor(fm_to_xn, p_y_given_x, i_var, i_incoming_factors, i_recipient_factor):
@@ -334,16 +356,13 @@ def _compute_variable_to_factor_msgs(hat_H, p_y_given_x, fm_to_xn, xn_to_fm, i_n
         i_neighbour_factors = i_neighbours_fs_per_v[i_var]
 
         for i_neigh_fac in i_neighbour_factors:
-            prob_msg_for_recipient_var = __compute_prob_msg_for_factor(fm_to_xn=fm_to_xn, p_y_given_x=p_y_given_x,
-                                                                       i_var=i_var,
-                                                                       i_incoming_factors=i_neighbour_factors,
-                                                                       i_recipient_factor=i_neigh_fac)
+            prob_msg_for_recipient_factor = __compute_prob_msg_for_factor(fm_to_xn=fm_to_xn, p_y_given_x=p_y_given_x,
+                                                                          i_var=i_var,
+                                                                          i_incoming_factors=i_neighbour_factors,
+                                                                          i_recipient_factor=i_neigh_fac)
 
-            # __compute_prob_msg_for_factor(fm_to_xn, i_var, i_incoming_factors, i_recipient_factor)
-            #
-            # fm_to_xn, i_var, i_incoming_factors, i_recipient_factor
-            # xn_to_fm = _send_prob_msg_to_recipient_factor(xn_to_fm, i_neigh_fac, prob_msg_for_recipient_var)
-
+            xn_to_fm = __send_prob_msg_to_recipient_factor(xn_to_fm=xn_to_fm, i_var=i_var, i_neigh_fac=i_neigh_fac,
+                                                           prob_msg_for_recipient_factor=prob_msg_for_recipient_factor)
     return xn_to_fm
 
 
@@ -353,17 +372,30 @@ def _are_marginals_relatively_unchanged(fm_to_xn, p_y_given_x, marginals):
     :return: marginals
     """
     marginals_are_relatively_unchanged = False
-    new_marginals = np.prod(fm_to_xn)
-    marginals_change_threshold = 0.5
+    # COMPUTE MARGINALS:
+    product_of_prob_msgs = np.prod(fm_to_xn, axis=0).reshape(1, 1) # TAKE PRODUCT OF ALL ROWS, giving shape (1, 1000)
+    llr = _compute_log_likelihood_ratios(p_y_given_x)
+    new_marginals = np.prod(llr, product_of_prob_msgs)
+
+
+    marginals_change_threshold = 0.5  # NO IDEA WHAT THRESHOLD TO USE YET .. TODO
     if new_marginals - marginals < marginals_change_threshold:
         marginals_are_relatively_unchanged = True
     return marginals_are_relatively_unchanged, new_marginals
 
 
-def _compute_candidate_word(p_y_given_x, fm_to_xn):
-    candidate_word = np.zeros(())
-    # hat_p_x_given_y = p_y_given_x * _product_of_probs_of_connected_nodes()
-    return candidate_word
+def _compute_candidate_word(hat_p_x_given_y):
+    """
+    If the log likelihood ratio of a bit is positive, the bit is predicted to be 0.
+    If negative the bit is predicted to be 1.
+    And vice versa.
+    :param hat_p_x_given_y: Probability of x given y.
+    :return:
+    """
+    pass
+    # candidate_word =
+    # new_array = (original_array < 0).astype(int)
+    # return candidate_word
 
 
 # `STEPS` MENTIONED WITHIN THIS FUNCTION ARE A DIRECT REFERENCE TO SLIDE#23 IN `ldpc.pdf` OF D. ADAMSKIY LECTURE SLIDES.
@@ -384,19 +416,19 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
     marginals = 0
 
     # READ REQUIRED DATA FILES IF NOT PASSED AS ARGUMENT:
-    if not hat_H:
+    if hat_H is None:
         H = np.loadtxt('inputs/H1.txt')  # shape (750,1000)
         hat_H = _rearrange_to_systematic_form(_decompose_to_echelon_form(H))
 
-    if not y:
+    if y is None:
         y = np.loadtxt('inputs/y1.txt').reshape(-1, 1)  # shape (1000,1)
 
 #---# STEP 1. INITIALISE CONDITIONAL PROBABILITIES OF WORD BASED ON RECEIVED WORD `y` AND PROBABILITY OF BIT FLIP `p`:
     p_y_given_x = _init_message_passing(y, p)  #
-    # `p_y_given_x` IS USED IN SUBSEQUENT PROBABILITY MESSAGE PASSING UPDATES, BUT THIS INITIAL VALUE IS STORED
-    # AND RE-USED IN STEPS 3 AND 4.
+    # `p_y_given_x` IS USED IN PROBABILITY MESSAGE PASSING UPDATES VIA CONVERSION TO LOG LIKELIHOOD RATIOS,
+    # WHILE THIS INITIAL VALUE IS UNCHANGED AND RE-USED IN STEPS 3 AND 4.
 
-    # FOR CONVENIENCE COMBINE THE TWO PROBS INTO ONE:
+    # FOR CONVENIENCE, COMBINE THE TWO PROBS INTO ONE:
     xn_to_fm = _compute_log_likelihood_ratios(p_y_given_x)
 
     # INIT FACTOR-TO-VARIABLE MATRIX:
@@ -422,6 +454,7 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
         marginals_are_unchanged, marginals = _are_marginals_relatively_unchanged(fm_to_xn, p_y_given_x, marginals)
 
         if marginals_are_unchanged:
+            # IT IS ASSUMED TO HAVE CONVERGED:
             candidate_word = _compute_candidate_word(p_y_given_x, fm_to_xn)
 
             # CHECK PARITY OF CANDIDATE WORD AND IF PASSES PARITY, STOP, RETURN WORD & 0.
