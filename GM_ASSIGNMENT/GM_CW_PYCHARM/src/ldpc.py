@@ -234,7 +234,10 @@ def __send_prob_msg_to_recipient_var(fm_to_xn, i_factor, i_neigh_var, prob_msg_f
     :return: Updated factor-to-variable matrix.
     """
     fm_to_xn[i_factor, i_neigh_var] = prob_msg_for_recipient_var
-    # NORMALISATION STEP NEEDED HERE ?
+    # NORMALISE:
+    sum_of_factor = np.sum(prob_msg_for_recipient_var)
+    if sum_of_factor != 0:
+        fm_to_xn[i_factor, i_neigh_var] /= sum_of_factor
     return fm_to_xn
 
 
@@ -311,7 +314,10 @@ def __send_prob_msg_to_recipient_factor(xn_to_fm, i_var, i_neigh_fac, prob_msg_f
     :return: Updated variable-to-factor matrix.
     """
     xn_to_fm[i_neigh_fac, i_var] = prob_msg_for_recipient_factor
-    # NORMALISATION STEP NEEDED HERE ?
+    # NORMALISE:
+    sum_of_factor = np.sum(prob_msg_for_recipient_factor)
+    if sum_of_factor != 0:
+        xn_to_fm[i_neigh_fac, i_var] /= sum_of_factor
     return xn_to_fm
 
 
