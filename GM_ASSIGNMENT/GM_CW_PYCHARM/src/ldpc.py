@@ -138,8 +138,10 @@ def _init_message_passing(y, p):
     given the bit in the received word. As a 2d array of shape (word_len, 2), hence for `y1` shape is (1000, 2).
     """
     prob_flipped, prob_not_flipped = p, 1 - p
-    x0_1 = np.array([[0], [1]])
-    p_y_given_x = (prob_flipped ** (x0_1 - y) % 2 * prob_not_flipped ** ((x0_1 - y + 1) % 2)).squeeze()
+    x0_1 = np.array(([0, 1]))
+    prob_flipped = prob_flipped ** (x0_1 - y) % 2
+    prob_not_flipped = prob_not_flipped ** ((x0_1 - y + 1) % 2)
+    p_y_given_x = prob_flipped * prob_not_flipped
     return p_y_given_x
 
 
@@ -174,7 +176,7 @@ def _passes_parity_check(word_for_parity_check, hat_H):
     return parity_prod == 0
 
 
-def _indicator(scalar_value):
+def __indicator(scalar_value):
     """
     Indicator function
     :param scalar_value:
@@ -212,98 +214,142 @@ def _make_dict_of_neighbouring_factors_of_each_variable(hat_H):
     return indices_of_neighbouring_factors_per_variable
 
 
-def _get_indication(y, incoming_variables, recipient_variable):
+def _indicator(y, incoming_variables, recipient_variable):
+    # get the bit value at index value of recipient_variable
     xn = y[recipient_variable]
     sum_for_indicator = xn
     for var_i in incoming_variables:
         sum_for_indicator += y[var_i]
-    return _indicator(sum_for_indicator)
+    return __indicator(sum_for_indicator)
 
 
-def _compute_msg_for_variable(probs_msg, y, factor_i, incoming_variables, recipient_variable):
+def __send_prob_msg_to_recipient_var(fm_to_xn, i_factor, i_neigh_var, prob_msg_for_recipient_var):
+    fm_to_xn[i_factor, i_neigh_var] = prob_msg_for_recipient_var
+    return fm_to_xn
+
+
+def __compute_prob_msg_for_variable(xn_to_fm, y, i_factor, i_incoming_variables, i_recipient_variable):
+    """
+    Compute the sum of products of all (incoming) variable probability-messages (in order to pass this on to a
+    variable from this factor).
+    :param xn_to_fm: Variable-to-factor probability-messages. 2d array of shape (factors, variables), here (750,1000).
+    :param y: Received codeword. 1d array (variables, 1), here (1000, 1).
+    :param i_factor: Index of the given factor for which the probability-message destined for the recipient variable is
+    being calculated.
+    :param i_incoming_variables: Indices of all variables connected this factor.
+    :param i_recipient_variable: Index of the variable to which the probability-message is being passed.
+    :return: Sum of product of all variables, other than recipient variable, that are connected to this factor.
+    """
     sum_, product = 0, 0
 
-    for i in incoming_variables:
+    for _ in i_incoming_variables:
 
-        ind = _get_indication(y, incoming_variables, recipient_variable)
-        product = ind
-        all_but_recipient = [v for v in incoming_variables if v != recipient_variable]
-        for var_j in all_but_recipient:
-            prob = probs_msg[factor_i, var_j]
-            product *= prob
+        i_all_vars_but_recipient = [v for v in i_incoming_variables if v != i_recipient_variable]
 
-        sum_ += ind * product
+        if _indicator(y, i_incoming_variables, i_recipient_variable) == 1:
+            for i_var in i_all_vars_but_recipient:
+                prob = xn_to_fm[i_factor, i_var]
+                product *= prob
+        else:
+            product = 0
+
+        sum_ += product
 
     return sum_
 
 
-def _compute_msg_for_factor(probs_msg, y, var_i, incoming_factors, recipient_factor):
-    product = probs_msg
-
-    for i in incoming_factors:
-        all_but_recipient = [v for v in incoming_factors if v != recipient_factor]
-
-        for fac_j in all_but_recipient:
-            prob = probs_msg[var_i, fac_j]
-            product *= prob
-
-    return product
-
-
-def _compute_factor_to_variable_msgs(xn_to_fm, hat_H, y, neighbours_vs_per_f):
+def _compute_factor_to_variable_msgs(xn_to_fm, fm_to_xn, hat_H, y, i_neighbours_vs_per_f):
     """
-    (Re)compute factor-to-variables messages using the variable-to-factor message passed to it `xn_to_fm`.
+    (Re)compute factor-to-variables probability-message `fm_to_xn` using the variable-to-factor probability-message
+    passed in `xn_to_fm`.
     "(i) Take a product over all the incoming messages from variables to this factor, apart from the one to which we're
     sending the updated message.
     (ii) Multiply by the factor itself.
     (iii) Sum over all the variables apart from the one we're sending the message to."
-    :param xn_to_fm: Probabilities (message) for each bit of codeword, updated from preceding variable-to-factor update.
+    :param xn_to_fm: Variable-to-factor probability-messages. 2d array of shape (factors, variables), here (750, 1000).
+    :param fm_to_xn: Factor-to-variable probability-messages. 2d array of shape (factors, variables), here (750, 1000).
     :param hat_H: Systematic parity check matrix. 2d array of shape (factors_num, variables_num).
     :param y: Codeword, to decode.
-    :param neighbours_vs_per_f: Connected variables for each factor.
-    :return: Updated message.
+    :param i_neighbours_vs_per_f: Indices of connected variables for each factor.
+    :return: Updated probability-message.
     """
     number_of_factors, number_of_variables = hat_H.shape
     fm_to_xn = np.zeros((number_of_factors, number_of_variables))
 
-    for factor_i, factor in enumerate(hat_H):
-        neighbour_variables = neighbours_vs_per_f[factor_i]
+    # ITERATE THROUGH EACH FACTOR TO VARIABLE NEIGHBOUR:
+    for i_factor, factor in enumerate(hat_H):
+        i_neighbour_variables = i_neighbours_vs_per_f[i_factor]
 
-        for neigh_var in neighbour_variables:
-            msg_for_variable = _compute_msg_for_variable(probs_msg=xn_to_fm, y, factor_i,
-                                                         incoming_variables=neighbour_variables,
-                                                         recipient_variable=neigh_var)
-            _send_msg_to_recipient_var(neigh_var, msg_for_variable)
+        # COMPUTE ALL INCOMING PROBABILITY-MESSAGES EXCLUDING THE RECIPIENT FOR EACH VARIABLE TO RECEIVE FROM FACTOR:
+        for i_neigh_var in i_neighbour_variables:
+            prob_msg_for_recipient_var = __compute_prob_msg_for_variable(xn_to_fm=xn_to_fm, y=y, i_factor=i_factor,
+                                                                         i_incoming_variables=i_neighbour_variables,
+                                                                         i_recipient_variable=i_neigh_var)
+            fm_to_xn = __send_prob_msg_to_recipient_var(fm_to_xn=fm_to_xn, i_factor=i_factor, i_neigh_var=i_neigh_var,
+                                                        prob_msg_for_recipient_var=prob_msg_for_recipient_var)
 
     return fm_to_xn
 
 
-def _compute_variable_to_factor_msgs(hat_H, y, p_y_given_x, fm_to_xn, neighbours_fs_per_v: dict):
+def __compute_prob_msg_for_factor(fm_to_xn, p_y_given_x, i_var, i_incoming_factors, i_recipient_factor):
+    """
+    Compute the sum of products of all (incoming) variable probability-messages (in order to pass this on to a
+    variable from this factor).
+    :param fm_to_xn: Factor-to-variable probability-messages. 2d array of shape (factors, variables), here (750,1000).
+    :param p_y_given_x: Conditional probability of received word given the sent word. 1d array (variables, 1),
+    here (1000, 1).
+    :param i_var: Index of the given variable for which the probability-message destined for the recipient factor is
+    being calculated.
+    :param i_incoming_factors: Indices of all factors connected this variable.
+    :param i_recipient_factor: Index of the factor to which the probability-message is being passed.
+    :return: Product of all variables, other than recipient variable, that are connected to this variable.
+    """
+    product = 0
+    llr = _compute_log_likelihood_ratios(p_y_given_x)
+
+    for _ in i_incoming_factors:
+        i_all_factors_but_recipient = [v for v in i_incoming_factors if v != i_recipient_factor]
+
+        for i_fac in i_all_factors_but_recipient:
+            prob = fm_to_xn[i_fac, i_var]
+            product *= prob
+
+    return product * llr
+
+
+def _compute_variable_to_factor_msgs(fm_to_xn, hat_H, p_y_given_x, i_neighbours_fs_per_v: dict):
     """
     (Re)compute factor-to-variables messages updating the given variable-to-factor messages.
-    "(i) Take all the incoming messages apart from the one factor to which we're ging to send the message now,
+    "(i) Take all the incoming messages apart from the one factor to which we're going to send the message now,
     we take a product of these and then
     (ii) we also multiply by the one initial probability, p(y|x).
     (iii) We take the product of all those and we send them over."
-    :param hat_H: Systematic parity check matrix. 2d array of shape (factors_num, variables_num).
-    :param y: Codeword, to decode.
-    :param neighbours_fs_per_v: Connected factors for each variable.
+    :param fm_to_xn: Factor-to-variable probability-messages. 2d array of shape (factors, variables), here (750, 1000).
+    :param hat_H: Systematic parity check matrix. 2d array of shape (factors, variables).
+    :param p_y_given_x:
+    :param i_neighbours_fs_per_v: Indices of connected factors for each variable.
     :return: Updated message.
     """
     number_of_factors, number_of_variables = hat_H.shape
-    xn_to_fm = np.zeros((number_of_factors, number_of_variables)
+    xn_to_fm = np.zeros((number_of_factors, number_of_variables))
 
-    for var_i, variable in enumerate(hat_H.T):
-        neighbour_factors = neighbours_fs_per_v[var_i]
+    for i_var, variable in enumerate(hat_H.T):
+        i_neighbour_factors = i_neighbours_fs_per_v[i_var]
 
-        for neigh_fac in neighbour_factors:
-            msg_for_factor = _compute_msg_for_factor(probs_msg, y, var_i, incoming_factors=neighbour_factors,
-                                                     recipient_factor=neigh_fac)
+        for i_neigh_fac in i_neighbour_factors:
+            prob_msg_for_recipient_var = __compute_prob_msg_for_factor(fm_to_xn, p_y_given_x, i_var,
+                                                                       incoming_factors=i_neighbour_factors,
+                                                                       recipient_factor=i_neigh_fac)
+
+            __compute_prob_msg_for_factor(fm_to_xn, i_var, i_incoming_factors, i_recipient_factor)
+
+            fm_to_xn, i_var, i_incoming_factors, i_recipient_factor
+            xn_to_fm = _send_prob_msg_to_recipient_factor(xn_to_fm, i_neigh_fac, prob_msg_for_recipient_var)
 
     return xn_to_fm
 
 
-def _are_marginals_relatively_unchanged(fm_to_xn, previous_marginals):
+def _are_marginals_relatively_unchanged(fm_to_xn, p_y_given_x, marginals):
     """
     (Re)compute the marginal probabilities (aka 'beliefs'), proportional to all the incoming messages...
     :return: marginals
@@ -311,19 +357,22 @@ def _are_marginals_relatively_unchanged(fm_to_xn, previous_marginals):
     marginals_are_relatively_unchanged = False
     new_marginals = np.prod(fm_to_xn)
     marginals_change_threshold = 0.5
-    if new_marginals - previous_marginals < marginals_change_threshold:
+    if new_marginals - marginals < marginals_change_threshold:
         marginals_are_relatively_unchanged = True
-    return marginals_change_threshold, new_marginals
+    return marginals_are_relatively_unchanged, new_marginals
+
 
 def _compute_candidate_word(p_y_given_x, fm_to_xn):
     candidate_word = np.zeros(())
-    hat_p_x_given_y = p_y_given_x * _product_of_probs_of_connected_nodes()
+    # hat_p_x_given_y = p_y_given_x * _product_of_probs_of_connected_nodes()
     return candidate_word
 
-# `STEPS` ARE A DIRECT REFERENCE TO SLIDE#23 IN `ldpc.pdf` OF D. ADAMSKIY LECTURE SLIDES.
-def decode_vector(hat_H=None, y=None, p=0.1, max_iterations=20):
+
+# `STEPS` MENTIONED WITHIN THIS FUNCTION ARE A DIRECT REFERENCE TO SLIDE#23 IN `ldpc.pdf` OF D. ADAMSKIY LECTURE SLIDES.
+def run(hat_H=None, y=None, p=0.1, max_iterations=20):
     """
-    Decode given word as array, using loopy belief propagation for a binary symmetric channel.
+    Perform loopy belief propagation for a binary symmetric channel on received word using systematic form of parity
+    check matrix.
     Compute likelihood of the bits of the given word `y`.
     :param hat_H: Systematic form of the parity check matrix. Expected as 2d numpy array.
     :param y: Received word, to decode. Expected as 1d numpy array.
@@ -333,13 +382,16 @@ def decode_vector(hat_H=None, y=None, p=0.1, max_iterations=20):
     successful decoding.
     """
     return_code = -1
+    candidate_word = ''
+    marginals = 0
 
+    # READ REQUIRED DATA FILES IF NOT PASSED AS ARGUMENT:
     if not hat_H:
-        H = np.loadtxt('../../inputs/H1.txt')  # shape (750,1000)
+        H = np.loadtxt('inputs/H1.txt')  # shape (750,1000)
         hat_H = _rearrange_to_systematic_form(_decompose_to_echelon_form(H))
 
     if not y:
-        y = np.loadtxt('../../inputs/y1.txt').reshape(-1, 1)  # shape (1000,1)
+        y = np.loadtxt('inputs/y1.txt').reshape(-1, 1)  # shape (1000,1)
 
 #---# STEP 1. INITIALISE CONDITIONAL PROBABILITIES OF WORD BASED ON RECEIVED WORD `y` AND PROBABILITY OF BIT FLIP `p`:
     p_y_given_x = _init_message_passing(y, p)  #
@@ -352,8 +404,6 @@ def decode_vector(hat_H=None, y=None, p=0.1, max_iterations=20):
     # FOR EACH FACTOR AND FOR EACH VARIABLE, STORE INDICES OF ALL CONNECTED VARIABLES AND FACTORS, RESPECTIVELY:
     i_of_neighbouring_vars_per_factor = _make_dict_of_neighbouring_variables_of_each_factor(hat_H)
     i_of_neighbouring_factors_per_var = _make_dict_of_neighbouring_factors_of_each_variable(hat_H)
-    candidate_word = ''
-    marginals = 0
 
 #---# STEPS 2, 3 & 4: ------------------------------------------------------------------------------------------------
 
@@ -368,7 +418,7 @@ def decode_vector(hat_H=None, y=None, p=0.1, max_iterations=20):
         xn_to_fm = _compute_variable_to_factor_msgs(hat_H, y, p_y_given_x, fm_to_xn, i_of_neighbouring_factors_per_var)
 
 # ------# STEP 4. COMPUTE MARGINALS. IF RELATIVELY UNCHANGED, USE PROBABILITIES TO DECODE WORD TO CANDIDATE WORD. ----
-        marginals_are_unchanged, marginals = _are_marginals_relatively_unchanged(p_y_given_x, marginals)
+        marginals_are_unchanged, marginals = _are_marginals_relatively_unchanged(fm_to_xn, p_y_given_x, marginals)
 
         if marginals_are_unchanged:
             candidate_word = _compute_candidate_word(p_y_given_x, fm_to_xn)
@@ -384,7 +434,12 @@ def decode_vector(hat_H=None, y=None, p=0.1, max_iterations=20):
 # START CODE FROM HERE:
 if __name__ == '__main__':
 
-    decoded_word, return_code = decode_vector()
+    H_ = np.loadtxt('inputs/H1.txt')  # shape (750,1000)
+    hat_H_ = _rearrange_to_systematic_form(_decompose_to_echelon_form(H_))
+    y_ = np.loadtxt('inputs/y1.txt').reshape(-1, 1)  # shape (1000,1)
+    cand_word, ret_code = run(hat_H=hat_H_, y=y_)
+
+
 
 
     # H = np.array([[1, 1, 1, 1, 0, 0],
