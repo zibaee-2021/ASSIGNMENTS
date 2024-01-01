@@ -218,7 +218,8 @@ def _indicator(y, i_incoming_variables, i_recipient_variable):
     xn = y[i_recipient_variable]  # get bit value at index value of recipient_variable
     sum_ = xn
     for var_i in i_incoming_variables:
-        sum_ += y[var_i] % 2
+        sum_ += y[var_i]
+    sum_ = sum_ % 2
     return 1 if sum_ == 0 else 0
 
 
@@ -233,7 +234,7 @@ def __send_prob_msg_to_recipient_var(fm_to_xn, i_factor, i_neigh_var, prob_msg_f
     :return: Updated factor-to-variable matrix.
     """
     fm_to_xn[i_factor, i_neigh_var] = prob_msg_for_recipient_var
-    # NORMALISE STEP NEEDED HERE ?
+    # NORMALISATION STEP NEEDED HERE ?
     return fm_to_xn
 
 
@@ -249,7 +250,7 @@ def __compute_prob_msg_for_variable(xn_to_fm, y, i_factor, i_incoming_variables,
     :param i_recipient_variable: Index of the variable to which the probability-message is being passed.
     :return: Sum of product of all variables, other than recipient variable, that are connected to this factor.
     """
-    sum_, product = 0, 0
+    sum_, product = 0, 1
     for _ in i_incoming_variables:
 
         i_all_vars_but_recipient = [v for v in i_incoming_variables if v != i_recipient_variable]
@@ -263,7 +264,9 @@ def __compute_prob_msg_for_variable(xn_to_fm, y, i_factor, i_incoming_variables,
                 product *= prob
         else:
             continue
+
         sum_ += product
+
     return sum_
 
 
@@ -308,7 +311,7 @@ def __send_prob_msg_to_recipient_factor(xn_to_fm, i_var, i_neigh_fac, prob_msg_f
     :return: Updated variable-to-factor matrix.
     """
     xn_to_fm[i_neigh_fac, i_var] = prob_msg_for_recipient_factor
-    # NORMALISE STEP NEEDED HERE ?
+    # NORMALISATION STEP NEEDED HERE ?
     return xn_to_fm
 
 
@@ -403,8 +406,9 @@ def _compute_candidate_word(hat_p_x_given_y):
     return candidate_word
 
 
+# MAIN FUNCTION IS HERE:
 # `STEPS` MENTIONED WITHIN THIS FUNCTION ARE A DIRECT REFERENCE TO SLIDE#23 IN `ldpc.pdf` OF D. ADAMSKIY LECTURE SLIDES.
-def run(hat_H=None, y=None, p=0.1, max_iterations=20):
+def run_ldpc(hat_H=None, y=None, p=0.1, max_iterations=20):
     """
     Perform loopy belief propagation for a binary symmetric channel on received word using systematic form of parity
     check matrix.
@@ -450,6 +454,7 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
     # PERFORM MESSAGE PASSING UNTIL CONVERGENCE OR FOR THE MAXIMUM NUMBER OF ITERATIONS,
     # COMPUTING THE MARGINALS AT EACH ITERATION TO DETERMINE WHETHER CONVERGED:
     for i in range(max_iterations):
+        print(f'\nIteration {i} out of {max_iterations}')
 
 # ------# STEP 2. (RE)COMPUTE FACTOR-TO-VARIABLE MESSAGES (PROBABILITIES) ACCORDING TO PARITY CONSTRAINTS: -----------
         fm_to_xn = _compute_factor_to_variable_msgs(xn_to_fm=xn_to_fm, fm_to_xn=fm_to_xn, hat_H=hat_H, y=y,
@@ -482,7 +487,7 @@ if __name__ == '__main__':
     H_ = np.loadtxt('inputs/H1.txt', dtype=np.int32)  # shape (750,1000)
     hat_H_ = _rearrange_to_systematic_form(_decompose_to_echelon_form(H_))
     y_ = np.loadtxt('inputs/y1.txt', dtype=np.int32).reshape(-1, 1)  # shape (1000,1)
-    cand_word, ret_code = run(hat_H=hat_H_, y=y_)
+    cand_word, ret_code = run_ldpc(hat_H=hat_H_, y=y_)
 
 
 
