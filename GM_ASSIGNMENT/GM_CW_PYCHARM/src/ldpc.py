@@ -489,44 +489,14 @@ def run_ldpc(hat_H=None, y=None, p=0.1, max_iterations=20):
 
 # START CODE FROM HERE:
 if __name__ == '__main__':
+    import os
 
     H_ = np.loadtxt('inputs/H1.txt', dtype=np.int32)  # shape (750,1000)
-    hat_H_ = _rearrange_to_systematic_form(_decompose_to_echelon_form(H_))
+
+    if os.path.exists('inputs/hat_H1.txt'):
+        hat_H_ = np.loadtxt('inputs/hat_H1.txt', dtype=np.int32)
+    else:
+        hat_H_ = _rearrange_to_systematic_form(_decompose_to_echelon_form(H_))
+        np.savetxt('inputs/hat_H1.txt', hat_H_, fmt='%d')
     y_ = np.loadtxt('inputs/y1.txt', dtype=np.int32).reshape(-1, 1)  # shape (1000,1)
     cand_word, ret_code = run_ldpc(hat_H=hat_H_, y=y_)
-
-
-
-
-    # H = np.array([[1, 1, 1, 1, 0, 0],
-    #                [0, 0, 1, 1, 0, 1],
-    #                [1, 0, 0, 1, 1, 0]], dtype=np.float64)
-    # _cache_global_neighbour_variables_of_each_factor(H)
-
-    # build_systematic_encoding_matrix()
-    # pass
-
-    # H = np.loadtxt('inputs/H1.txt')
-    # # ref = np.loadtxt('inputs/ref_from_oct.txt')
-    # # H = np.array([[1, 1, 1, 1, 0, 0],
-    # #               [0, 0, 1, 1, 0, 1],
-    # #               [1, 0, 0, 1, 1, 0]], dtype=np.float64)
-    #
-    # fp_ref_H1 = 'inputs/H1_ref.txt'
-    # if os.path.exists(fp_ref_H1):
-    #     ref_H1 = np.loadtxt(fp_ref_H1)
-    # else:
-    #     ref_H1 = _decompose_to_echelon_form(H)
-    #     np.savetxt(fp_ref_H1, ref_H1, delimiter=' ', fmt='%d')
-    #
-    # fp_hat_H1 = 'inputs/H1_hat.txt'
-    # if os.path.exists(fp_hat_H1):
-    #     hat_H1 = np.loadtxt(fp_hat_H1)
-    # else:
-    #     hat_H1 = _decompose_to_echelon_form(ref_H1)
-    #     np.savetxt(fp_hat_H1, hat_H1, delimiter=' ', fmt='%d')
-
-    # y = np.loadtxt('inputs/y1.txt')
-    # decoded_word, ret_code = decode_vector(hat_H=hat_H, y=None, p=0.1, max_iterations=20)
-    # H = np.loadtxt('inputs/H1.txt')/
-
