@@ -439,9 +439,12 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
 
     # FOR CONVENIENCE, COMBINE THE TWO PROBS INTO ONE:
     xn_to_fm = _compute_log_likelihood_ratios(p_y_given_x)
+    # MAKE SAME DIMENSIONS AS hat_H
+    factors_num, variables_num = hat_H.shape
+    xn_to_fm = np.tile(xn_to_fm, (factors_num, variables_num))
 
-    # INIT FACTOR-TO-VARIABLE MATRIX:
-    fm_to_xn = np.zeros((hat_H.shape[0], hat_H.shape[1]))
+    # INIT FACTOR-TO-VARIABLE MATRIX (MAKE SAME DIMENSIONS AS hat_H):
+    fm_to_xn = np.zeros((factors_num, variables_num))
 
     # FOR EACH FACTOR AND FOR EACH VARIABLE, STORE INDICES OF ALL CONNECTED VARIABLES AND FACTORS, RESPECTIVELY:
     i_of_neighbouring_vars_per_factor = _make_dict_of_neighbouring_variables_of_each_factor(hat_H)
