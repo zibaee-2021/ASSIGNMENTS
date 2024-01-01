@@ -210,14 +210,15 @@ def _indicator(y, i_incoming_variables, i_recipient_variable):
     """
     Indicator function which effectively determines parity the given variables.
     :param y: Received word. 1d array of shape (1000, 1).
-    :param i_incoming_variables: Indices of incoming variables.
-    :param i_recipient_variable: Index of a recipient variable.
+    :param i_incoming_variables: Indices of incoming variables. Xn' for all n' except recipient.
+    :param i_recipient_variable: Index of a recipient variable. Xn
     :return: 1 if the result of the sum: Xn + Sigma(Xn') over all n' is 0.
     """
+    y = y.squeeze()
     xn = y[i_recipient_variable]  # get bit value at index value of recipient_variable
     sum_ = xn
     for var_i in i_incoming_variables:
-        sum_ += y[var_i]
+        sum_ += y[var_i] % 2
     return 1 if sum_ == 0 else 0
 
 
@@ -250,14 +251,18 @@ def __compute_prob_msg_for_variable(xn_to_fm, y, i_factor, i_incoming_variables,
     """
     sum_, product = 0, 0
     for _ in i_incoming_variables:
+
         i_all_vars_but_recipient = [v for v in i_incoming_variables if v != i_recipient_variable]
 
-        if 1 == _indicator(y=y, i_incoming_variables=i_incoming_variables, i_recipient_variable=i_recipient_variable):
+        ind = _indicator(y=y, i_incoming_variables=i_all_vars_but_recipient, i_recipient_variable=i_recipient_variable)
+
+        if ind == 1:
+
             for i_var in i_all_vars_but_recipient:
                 prob = xn_to_fm[i_factor, i_var]
                 product *= prob
         else:
-            product = 0
+            continue
         sum_ += product
     return sum_
 
@@ -417,11 +422,11 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
 
     # READ REQUIRED DATA FILES IF NOT PASSED AS ARGUMENT:
     if hat_H is None:
-        H = np.loadtxt('inputs/H1.txt')  # shape (750,1000)
+        H = np.loadtxt('inputs/H1.txt', dtype=np.int32)  # shape (750,1000)
         hat_H = _rearrange_to_systematic_form(_decompose_to_echelon_form(H))
 
     if y is None:
-        y = np.loadtxt('inputs/y1.txt').reshape(-1, 1)  # shape (1000,1)
+        y = np.loadtxt('inputs/y1.txt', dtype=np.int32).reshape(-1, 1)  # shape (1000,1)
 
 #---# STEP 1. INITIALISE CONDITIONAL PROBABILITIES OF WORD BASED ON RECEIVED WORD `y` AND PROBABILITY OF BIT FLIP `p`:
     p_y_given_x = _init_message_passing(y=y, p=p)  #
@@ -474,9 +479,9 @@ def run(hat_H=None, y=None, p=0.1, max_iterations=20):
 # START CODE FROM HERE:
 if __name__ == '__main__':
 
-    H_ = np.loadtxt('inputs/H1.txt')  # shape (750,1000)
+    H_ = np.loadtxt('inputs/H1.txt', dtype=np.int32)  # shape (750,1000)
     hat_H_ = _rearrange_to_systematic_form(_decompose_to_echelon_form(H_))
-    y_ = np.loadtxt('inputs/y1.txt').reshape(-1, 1)  # shape (1000,1)
+    y_ = np.loadtxt('inputs/y1.txt', dtype=np.int32).reshape(-1, 1)  # shape (1000,1)
     cand_word, ret_code = run(hat_H=hat_H_, y=y_)
 
 
